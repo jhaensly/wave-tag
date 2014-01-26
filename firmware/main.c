@@ -8,30 +8,11 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
-#include "accel_constants.h"
-
-// Utility methods
-typedef uint8_t bool;
-#define true    1
-#define false   0
-
-#define BUSY_WHILE(c) while(c)
-#define BUSY_UNTIL(c) BUSY_WHILE(!(c))
-#define FIND_MIDPOINT(min, max) ((min) + (((max) - (min)) / 2))
+#include "util.h"
+#include "accel.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
-
-// Debugging goodness
-#define DEBUG
-
-#ifdef DEBUG
-#define OUTPUT_VALUE(v) do { PORTB = ~((v << 6) | (v >> 2)); } while(0)
-
-#else
-#define OUTPUT_VALUE(v)
-
-#endif // DEBUG
 
 
 volatile bool    is_button_down = false;
@@ -44,46 +25,28 @@ volatile uint8_t led_measurement_bit;
 volatile uint8_t vlc_data[64];
 volatile uint8_t vlc_data_idx = 0;
 
-void twi_start(uint8_t addr) {
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+enum {
+    MODE_ERROR,
+    MODE_SLEEP,
+    MODE_WAITING,
+    MODE_VLC,
+    MODE_WAVE,
+    MODE_ACCEL_TEST,
+} app_mode;
 
-    TWDR = addr;
-    TWCR = (1<<TWINT)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+void error_state(uint8_t err_code) {
+    bool is_on = false;
+    int i = 20;
+
+    while (i-- > 0) {
+        OUTPUT_VALUE(is_on ? err_code : 0);
+        is_on = !is_on;
+        _delay_ms(10);
+    }
+
+    // TODO: Reset device
 }
 
-void twi_send_byte(uint8_t data) {
-    TWDR = data;
-    TWCR = (1<<TWINT)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
-}
-
-#define TWI_START_WRITE(a) twi_start(a)
-#define TWI_START_READ(a)  twi_start((a) | 1)
-
-// TODO: Generalize to I2C byte read
-uint8_t readAccelReg(uint8_t reg) {
-    TWI_START_WRITE(ACCEL_I2C_ADDR);
-    twi_send_byte(reg);
-
-    TWI_START_READ(ACCEL_I2C_ADDR);
-
-    TWCR = (1<<TWINT)|(1<<TWEN)|(0<<TWEA);		//wait for data; send NACK
-    BUSY_UNTIL(TWCR & (1<<TWINT));
-
-    TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
-    return TWDR;
-}
-
-// TODO: Generalize to I2C byte write
-void writeAccelReg(uint8_t reg, uint8_t val) {
-    TWI_START_WRITE(ACCEL_I2C_ADDR);
-    twi_send_byte(reg);
-    twi_send_byte(val);
-
-    TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
-}
 
 
 uint8_t measureLED() {
@@ -121,13 +84,11 @@ uint8_t measureLED() {
 
 
 int main(void) {
-    uint8_t i=0;
-
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
 
-    OUTPUT_VALUE(5);
+    OUTPUT_VALUE(5u);
 
     //Timer0 interrupt
 	//OCR0A = 50; //how high you count
@@ -142,28 +103,43 @@ int main(void) {
 
     OUTPUT_VALUE(0);
 
-    // Configure the accelerometer
-    // Enable freefall detect on y; Event latch disable
-    writeAccelReg(ACCEL_REG_FF_MT_CFG, 0x50u);
-    // Enable freefall detect
-    writeAccelReg(ACCEL_REG_INT_EN, 0x04u);
-    // Freefall interrupt to INT2 pin
-    writeAccelReg(ACCEL_REG_INT_PIN_MAP, 0x04u);
-    // Push pull, active high
-    writeAccelReg(ACCEL_REG_CTRL_3, 0x00u);
-    // Set threshold. Max = 0x7f, which equals 8 G
-    writeAccelReg(ACCEL_REG_FF_MT_THS, 0x0au);
-    // Set ACTIVE bit to wake chip
-    writeAccelReg(ACCEL_REG_CTRL_1, 0x01u);
+    accelConfigFreefall();
+    app_mode = MODE_ACCEL_TEST;
 
     while(1) {
-        //OUTPUT_VALUE(readAccelReg(ACCEL_OUT_Y_MSB));
-        //_delay_ms(10);
-        OUTPUT_VALUE(i++);
-        _delay_ms(100);
+        switch (app_mode)
+        {
+        case MODE_SLEEP:
+            // Go to sleep
+            break;
 
-        // TODO: Configure accel for inertial interrupt and put MCU to sleep
-        //       when the device is inactive
+        case MODE_WAITING:
+            // User input
+            break;
+
+        case MODE_VLC:
+            // Accept user input
+            break;
+
+        case MODE_WAVE:
+            // Wave!!
+            break;
+
+        case MODE_ACCEL_TEST:
+        {
+            accel_data_t val;
+            accelReadValue(ACCEL_Y, &val);
+            OUTPUT_VALUE(val);
+            _delay_ms(10);
+            break;
+        }
+
+        case MODE_ERROR:
+            // Fall through
+        default:
+            error_state(0xffu);
+            break;
+        }
     }
 }
 
