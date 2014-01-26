@@ -1,6 +1,7 @@
 C_SRC   += main.c
 C_SRC   += accel.c
 C_SRC   += vlc_decoder_data.c
+C_SRC   += alphabet.c
 
 # The AVR device to compile for
 DEVICE      = attiny48
