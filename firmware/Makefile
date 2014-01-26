@@ -19,7 +19,7 @@ SRC_PATH    = $(shell pwd)
 APP_NAME    = wave-tag
 OBJ_DIR     = $(SRC_PATH)/obj
 ELF_FILE    = $(OBJ_DIR)/$(APP_NAME).elf
-BIN_FILE    = $(OBJ_DIR)/$(APP_NAME).bin
+HEX_FILE    = $(OBJ_DIR)/$(APP_NAME).hex
 MAP_FILE    = $(OBJ_DIR)/$(APP_NAME).map
 OBJECTS     = $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
 
@@ -47,14 +47,14 @@ obj_dir:
 	mkdir -p $(OBJ_DIR)
 
 .PHONY : $(APP_NAME)
-$(APP_NAME): $(BIN_FILE)
+$(APP_NAME): $(HEX_FILE)
 
 $(OBJ_DIR)/%.o: %.c
 	$(COMPILE) -c $< -o $@
 
 .PHONY : flash
 flash:	all
-	$(AVRDUDE) -U flash:w:$(BIN_FILE):i
+	$(AVRDUDE) -U flash:w:$(HEX_FILE):i
 
 .PHONY : fuse
 fuse:
@@ -66,23 +66,23 @@ install: flash fuse
 
 .PHONY : load
 load: all
-	bootloadHID $(BIN_FILE)
+	bootloadHID $(HEX_FILE)
 
 .PHONY : clean
 clean:
 	rm -f $(OBJ_DIR)/*.o
 	rm -f $(OBJ_DIR)/*.elf
 	rm -f $(OBJ_DIR)/*.map
-	rm -f $(OBJ_DIR)/*.bin
+	rm -f $(OBJ_DIR)/*.hex
 	rm -rf $(OBJ_DIR)
 
 # file targets:
 $(ELF_FILE): $(OBJECTS)
 	$(COMPILE) -o $(ELF_FILE) $(OBJECTS)
 
-$(BIN_FILE): $(ELF_FILE)
-	rm -f $(BIN_FILE)
-	$(OBJCOPY) -j .text -j .data -O ihex $(ELF_FILE) $(BIN_FILE)
+$(HEX_FILE): $(ELF_FILE)
+	rm -f $(HEX_FILE)
+	$(OBJCOPY) -j .text -j .data -O ihex $(ELF_FILE) $(HEX_FILE)
 # If you have an EEPROM section, you must also create a hex file for the
 # EEPROM and add it to the "flash" target.
 
