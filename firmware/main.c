@@ -11,7 +11,11 @@
 
 #include "util.h"
 #include "accel.h"
+<<<<<<< HEAD
 //#include "button.h"
+=======
+#include "alphabet.h"
+>>>>>>> Added alphabet files
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
@@ -27,6 +31,7 @@ volatile uint8_t led_measurement_bit;
 volatile uint8_t vlc_data[64];
 volatile uint8_t vlc_data_idx = 0;
 
+
 enum {
     MODE_SLEEP,
     MODE_WAITING,
@@ -35,6 +40,7 @@ enum {
     MODE_ACCEL_TEST,
 } m_current_mode,
   m_next_mode;
+
 
 void error_state(int err_code) {
     int i = 20;
@@ -157,6 +163,7 @@ int main(void) {
 	//TCNT0 = 0;
 
     //configure interrupt
+
     EICRA = 0x0cu; //rising edge
     EIMSK = 0x02u;
     sei();
@@ -166,6 +173,7 @@ int main(void) {
     accelConfigFreefall();
     m_current_mode = MODE_ACCEL_TEST;
     m_next_mode = MODE_ACCEL_TEST;
+
 
     while(1) {
         int error;
@@ -205,12 +213,13 @@ int main(void) {
     }
 }
 
+/*
 ISR (INT1_vect) {
    // _delay_ms(1);
    // OUTPUT_VALUE(0x00);
-}
+}*/
 
-
+/*
 ISR(TIMER0_COMPA_vect) {
     if (m_vlc_in_progress) {
         uint8_t led_measurement = measureLED();
@@ -253,5 +262,5 @@ ISR(TIMER0_COMPA_vect) {
             led_measurement_time++;
         }
     }
-}
+}*/
 
