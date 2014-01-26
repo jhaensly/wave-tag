@@ -155,30 +155,29 @@ void initDisplay() {
 }
 
 /**
-* Interrupt handler for timer.  In charge of displaying text.
-*/
-ISR(TIMER0_COMPA_vect) {
-    
+ * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
+ */
+void timerZeroHandler() {
     // Wait before reverting back to menu
     if (waveTimer<displayRefreshTimeout)
-		waveTimer++;
+        waveTimer++;
     else
-	{
-		//right before reverting to the menu, reset the shake ignore counter
-		if (waveTimer==displayRefreshTimeout)
-		{
-			ignoreShakes=2;
-			waveTimer++; //increment just so ignoreShakes doesn't get called again
-		}
+    {
+        //right before reverting to the menu, reset the shake ignore counter
+        if (waveTimer==displayRefreshTimeout)
+        {
+            ignoreShakes=2;
+            waveTimer++; //increment just so ignoreShakes doesn't get called again
+        }
         
         ///@todo somehow implement this with whatever menu system we come up with
         //OUTPUT_VALUE(~(1<<messageNumber));
-	}
+    }
     
     //don't do anything if you're still in the timeout stage before the message
     if (waveTimer>blackoutDelay)
     {
-	    //keep ticking until you reach the end of this row
+        //keep ticking until you reach the end of this row
         if (columnTimer < columnTime)
         {
             columnTimer++;
@@ -194,13 +193,15 @@ ISR(TIMER0_COMPA_vect) {
             }
         }
     }
+
 }
 
 /**
- * Interrupt handler for accelerometer interrupt
+ * Same shit but for external interrupt 1.
  */
-ISR (INT1_vect)
-{
+void intOneHandler() {
+    OUTPUT_VALUE(0xff);
+    
     uint32_t nextWaveTime;
     
 	if (ignoreShakes>0)
@@ -232,5 +233,6 @@ ISR (INT1_vect)
     
 	///@todo clear interrupt flag in case there were any spurious interrupts during this vector
 	//GIFR = (1<<PCIF0);
-    
+
 }
+

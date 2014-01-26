@@ -33,10 +33,21 @@ extern void initDisplay();
  */
 extern void refreshFrameBuffer();
 
+/**
+ * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
+ */
+extern void timerZeroHandler();
+
+/**
+ * Same shit but for external interrupt 1.
+ */
+extern void intOneHandler();
 
 /**
  * Matrix of output messages.
  */
 extern volatile uint8_t outputText[8][MESSAGE_LENGTH];
+
+
 
 #endif // ALPHABET_H_

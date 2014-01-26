@@ -11,7 +11,7 @@ CLOCK       = 8000000
 # Options to avrdude which define the hardware you use for
 # uploading to the AVR and the interface where this hardware
 # is connected.
-PROGRAMMER  = -c avrispmkii -P usb -F -B 100
+PROGRAMMER  = -c avrispmkii -P usb -F -B 10
 
 # Parameters for avrdude to flash the fuses appropriately.
 FUSES       = -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
