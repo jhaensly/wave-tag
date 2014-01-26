@@ -11,11 +11,8 @@
 
 #include "util.h"
 #include "accel.h"
-<<<<<<< HEAD
-//#include "button.h"
-=======
 #include "alphabet.h"
->>>>>>> Added alphabet files
+
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
@@ -38,6 +35,7 @@ enum {
     MODE_VLC,
     MODE_WAVE,
     MODE_ACCEL_TEST,
+    MODE_COUNT_TEST,
 } m_current_mode,
   m_next_mode;
 
@@ -134,7 +132,13 @@ static int doVLC(void) {
 }
 
 static int doWave(void) {
-    return -4;
+    initDisplay();
+    outputText[0][0]=1;
+    outputText[0][1]=2;
+    outputText[0][2]=3;
+    refreshFrameBuffer();
+    while(1);
+    return 0;
 }
 
 static int doAccelTest(void) {
@@ -148,13 +152,22 @@ static int doAccelTest(void) {
     return 0;
 }
 
+static int doCountTest(void) {
+    uint8_t i;
+    while(1)
+    {
+        i++;
+        OUTPUT_VALUE(i);
+        _delay_ms(10);
+    }
+    return 0;
+}
 
 int main(void) {
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
 
-    OUTPUT_VALUE(5u);
 
     //Timer0 interrupt
 	//OCR0A = 50; //how high you count
@@ -164,17 +177,13 @@ int main(void) {
 
     //configure interrupt
 
-    EICRA = 0x0cu; //rising edge
-    EIMSK = 0x02u;
-    sei();
 
     //buttonInit();
     //buttonRegisterEventHandler(&handleButtonEvent);
     accelConfigFreefall();
-    m_current_mode = MODE_ACCEL_TEST;
-    m_next_mode = MODE_ACCEL_TEST;
-
-
+    m_current_mode = MODE_COUNT_TEST;
+    m_next_mode = MODE_COUNT_TEST;
+    doCountTest();
     while(1) {
         int error;
 
@@ -200,6 +209,10 @@ int main(void) {
             error = doAccelTest();
             break;
 
+        case MODE_COUNT_TEST:
+            error = doCountTest();
+            break;
+                
         default:
             error = -1;
             break;
@@ -212,6 +225,29 @@ int main(void) {
         m_current_mode = m_next_mode;
     }
 }
+
+
+
+/**
+ * Interrupt handler for timer.  In charge of displaying text.
+ */
+/*ISR(TIMER0_COMPA_vect) {
+    timerZeroHandler();
+       
+}*/
+
+
+/**
+ * Interrupt handler for accelerometer interrupt
+ */
+
+/*ISR (INT1_vect)
+{
+    intOneHandler();
+}*/
+
+
+
 
 /*
 ISR (INT1_vect) {
