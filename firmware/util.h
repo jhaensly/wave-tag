@@ -17,4 +17,6 @@
 
 #define OUTPUT_VALUE(v) do { PORTB = ~((uint8_t)(v << 6) | (uint8_t)(v >> 2)); } while(0)
 
+#define SIZEOF_ARRAY(a) (sizeof(a) / sizeof(a[0]))
+
 #endif // UTIL_H_

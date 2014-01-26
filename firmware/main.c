@@ -7,15 +7,17 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
+#include <stdbool.h>
 
 #include "util.h"
 #include "accel.h"
+//#include "button.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
 
 
-volatile bool    is_button_down = false;
+static volatile bool m_vlc_in_progress;
 volatile uint8_t led_measurement_min;
 volatile uint8_t led_measurement_max;
 volatile uint8_t led_measurement_thresh;
@@ -26,28 +28,58 @@ volatile uint8_t vlc_data[64];
 volatile uint8_t vlc_data_idx = 0;
 
 enum {
-    MODE_ERROR,
     MODE_SLEEP,
     MODE_WAITING,
     MODE_VLC,
     MODE_WAVE,
     MODE_ACCEL_TEST,
-} app_mode;
+} m_current_mode,
+  m_next_mode;
 
-void error_state(uint8_t err_code) {
-    bool is_on = false;
+void error_state(int err_code) {
     int i = 20;
 
     while (i-- > 0) {
-        OUTPUT_VALUE(is_on ? err_code : 0);
-        is_on = !is_on;
-        _delay_ms(10);
+        OUTPUT_VALUE(err_code);
+        _delay_ms(100);
+
+        OUTPUT_VALUE(0);
+        _delay_ms(100);
     }
 
     // TODO: Reset device
 }
 
+#if 0
+static void handleButtonEvent(button_event_t event) {
+    switch (event) {
+        case BUTTON_SINGLE_PRESS:
+            break;
 
+        case BUTTON_DOUBLE_PRESS:
+            break;
+
+        case BUTTON_HOLD_START:
+            m_vlc_in_progress       = true;
+            led_measurement_max     = 0;
+            led_measurement_min     = UINT8_MAX;
+            led_measurement_thresh  = UINT8_MAX / 2;
+            led_measurement_time    = 0;
+            led_measurement_bit     = 0;
+
+            // start timer
+            break;
+
+        case BUTTON_HOLD_RELEASE:
+            m_vlc_in_progress = false;
+            // stop timer
+            break;
+
+        default:
+            break;
+    }
+}
+#endif
 
 uint8_t measureLED() {
     PORTC = PORTC & 0xfcu; //kill both sides of the LED
@@ -83,6 +115,34 @@ uint8_t measureLED() {
 }
 
 
+static int doSleep(void) {
+    return -1;
+}
+
+static int doWaiting(void) {
+    return -2;
+}
+
+static int doVLC(void) {
+    return -3;
+}
+
+static int doWave(void) {
+    return -4;
+}
+
+static int doAccelTest(void) {
+    while (m_current_mode == m_next_mode) {
+        accel_data_t val;
+        accelReadValue(ACCEL_Y, &val);
+        OUTPUT_VALUE(val);
+        _delay_ms(10);
+    }
+
+    return 0;
+}
+
+
 int main(void) {
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
@@ -101,45 +161,47 @@ int main(void) {
     EIMSK = 0x02u;
     sei();
 
-    OUTPUT_VALUE(0);
-
+    //buttonInit();
+    //buttonRegisterEventHandler(&handleButtonEvent);
     accelConfigFreefall();
-    app_mode = MODE_ACCEL_TEST;
+    m_current_mode = MODE_ACCEL_TEST;
+    m_next_mode = MODE_ACCEL_TEST;
 
     while(1) {
-        switch (app_mode)
+        int error;
+
+        switch (m_current_mode)
         {
         case MODE_SLEEP:
-            // Go to sleep
+            error = doSleep();
             break;
 
         case MODE_WAITING:
-            // User input
+            error = doWaiting();
             break;
 
         case MODE_VLC:
-            // Accept user input
+            error = doVLC();
             break;
 
         case MODE_WAVE:
-            // Wave!!
+            error = doWave();
             break;
 
         case MODE_ACCEL_TEST:
-        {
-            accel_data_t val;
-            accelReadValue(ACCEL_Y, &val);
-            OUTPUT_VALUE(val);
-            _delay_ms(10);
+            error = doAccelTest();
+            break;
+
+        default:
+            error = -1;
             break;
         }
 
-        case MODE_ERROR:
-            // Fall through
-        default:
-            error_state(0xffu);
-            break;
+        if (error != 0) {
+            error_state(error);
         }
+
+        m_current_mode = m_next_mode;
     }
 }
 
@@ -150,24 +212,8 @@ ISR (INT1_vect) {
 
 
 ISR(TIMER0_COMPA_vect) {
-    if (PIND & 4) {
-        // Button released
-        is_button_down = false;
-    }
-    else {
-        // Button pressed
+    if (m_vlc_in_progress) {
         uint8_t led_measurement = measureLED();
-
-        if (!is_button_down) {
-            // Start the VLC measurement state machine. Reset measurement thresholds
-            is_button_down = true;
-            led_measurement_max     = led_measurement;
-            led_measurement_min     = led_measurement;
-            led_measurement_thresh  = led_measurement + (led_measurement/2);
-            led_measurement_time    = 0;
-            led_measurement_bit     = 0;
-            return;
-        }
 
         // Maximum and minimum values are primarily a function of the transmitter's distance from
         // the board. Since that is variable, find good values dynamically. At the start of a
