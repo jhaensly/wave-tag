@@ -34,7 +34,9 @@ OBJCOPY = $(TC_PRE)objcopy
 OBJDUMP = $(TC_PRE)objdump
 SIZE    = $(TC_PRE)size
 
-CFLAGS  = -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+include version.inc
+
+CFLAGS  = -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES)
 LDFLAGS = -Wl,--gc-sections,-Map=$(MAP_FILE) 
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)
