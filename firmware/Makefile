@@ -38,7 +38,7 @@ SIZE    = $(TC_PRE)size
 
 include version.inc
 
-CFLAGS  = -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES)
+CFLAGS  = -Wall -O3 -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES)
 LDFLAGS = -Wl,--gc-sections,-Map=$(MAP_FILE) 
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)

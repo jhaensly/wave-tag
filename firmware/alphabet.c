@@ -7,18 +7,19 @@
  */
 
 #include "alphabet.h"
+#include "accel.h"
 #include <avr/interrupt.h>
 #include "util.h"
 
 /**
  * Matrix of output messages.
  */
-volatile uint8_t outputText[8][MESSAGE_LENGTH]={};
+volatile uint8_t outputText[MESSAGE_LENGTH]={};
 
 /**
  * Width of display output in pixels.
  */
-#define FRAME_BUFFER_LENGTH 100
+#define FRAME_BUFFER_LENGTH 50
 
 /**
  * Pixel framebuffer of current thing to display.
@@ -63,7 +64,7 @@ static volatile uint32_t blackoutDelay;
 /**
  * Raw pixel data for A-Z, 0-9, and some symbols
  */
-static const uint8_t ALPHABET [242] PROGMEM = {0x00,0x00,0x00,0x00,0x00,0x00,0x3f,0x7f,0xcc,0xcc,0x7f,0x3f,0xff,0xff,0xdb,0xdb,0xff,0x66,0x3c,0x7e,0xe7,0xc3,0xc3,0x66,0xff,0xff,0xc3,0xe7,0x7e,0x3c,0xff,0xff,0xdb,0xdb,0xc3,0xff,0xff,0xd8,0xd8,0xc0,0x3c,0x7e,0xe7,0xc3,0xcb,0xcf,0x4e,0xff,0xff,0x18,0x18,0xff,0xff,0xc3,0xc3,0xff,0xff,0xc3,0xc3,0x0c,0xc3,0xc3,0xc3,0xfe,0xfc,0xff,0xff,0x18,0x3e,0x67,0x03,0xff,0xff,0x03,0x03,0x03,0xff,0xff,0x60,0x30,0x60,0xff,0xff,0xff,0xff,0x60,0x38,0x0c,0xff,0xff,0x3c,0x7e,0xc3,0xc3,0x7e,0x3c,0xff,0xff,0xcc,0xcc,0x78,0x30,0x3c,0x7e,0xc3,0xc3,0xfe,0x3d,0xff,0xff,0xcc,0xcc,0x7e,0x37,0x76,0xf3,0x93,0xcf,0x4e,0xc0,0xc0,0xff,0xff,0xc0,0xc0,0xfe,0xff,0x03,0x03,0xff,0xfe,0xfc,0xfe,0x03,0x03,0xfe,0xfc,0xff,0xff,0x06,0x0c,0x06,0xff,0xff,0xc3,0x7e,0x18,0x18,0x7e,0xc3,0xc0,0x60,0x3f,0x3f,0x60,0xc0,0xc3,0xc7,0xcf,0xf3,0xe3,0xc3,0x23,0x63,0xff,0xff,0x03,0x03,0x43,0xc7,0xcf,0xfb,0x73,0x42,0xd3,0xd3,0xff,0x6e,0xf8,0xf8,0x18,0x18,0xff,0xff,0xfa,0xdb,0xdb,0xdf,0xce,0x7e,0xff,0xd3,0xdf,0x5e,0xc7,0xcf,0xd8,0xf0,0xe0,0x6e,0xff,0x93,0x93,0xff,0x6e,0x70,0xfa,0xdb,0xdb,0x7e,0x3c,0x7e,0xff,0xcb,0xd3,0xff,0x7e,0xfb,0xfb,0x60,0xe0,0xcb,0xdb,0xf0,0x70,0x14,0x14,0x7f,0x14,0x7f,0x14,0x14,0x03,0x03,0x66,0x66,0x64,0x66,0x02,0x02,0x66,0x64};
+static const uint8_t ALPHABET [242] PROGMEM = {0,0,0,0,0,0,252,254,51,51,254,252,255,255,219,219,255,102,60,126,231,195,195,102,255,255,195,231,126,60,255,255,219,219,195,255,255,27,27,3,60,126,231,195,211,243,114,255,255,24,24,255,255,195,195,255,255,195,195,48,195,195,195,127,63,255,255,24,124,230,192,255,255,192,192,192,255,255,6,12,6,255,255,255,255,6,28,48,255,255,60,126,195,195,126,60,255,255,51,51,30,12,60,126,195,195,127,188,255,255,51,51,126,236,110,207,201,243,114,3,3,255,255,3,3,127,255,192,192,255,127,63,127,192,192,127,63,255,255,96,48,96,255,255,195,126,24,24,126,195,3,6,252,252,6,3,195,227,243,207,199,195,196,198,255,255,192,192,194,227,243,223,206,66,203,203,255,118,31,31,24,24,255,255,95,219,219,251,115,126,255,203,251,122,227,243,27,15,7,118,255,201,201,255,118,14,95,219,219,126,60,126,255,211,203,255,126,223,223,6,7,211,219,15,14,40,40,254,40,254,40,40,192,192,102,102,38,102,64,64,102,38};
 
 /**
  * Width of each individual symbol
@@ -76,25 +77,37 @@ static const uint8_t SYMBOL_LENGTH[43] PROGMEM = {6,6,6,6,6,5,5,7,6,6,6,6,5,7,7,
  */
 static const uint8_t SYMBOL_POSITION [43] PROGMEM = {0,6, 12, 18, 24, 30, 35, 40, 47, 53, 59, 65, 71, 76, 83, 90, 96, 102, 108, 114, 119, 125, 131, 137, 144, 150, 156, 162, 168, 173, 178, 184, 189, 194, 199, 205, 211, 217, 219, 225,232,234,236};
 
+	
 /**
+* Records current direction of device.  Important because
+* accelerometer pin is symmetrical.
+*/
+static bool goingRight;
+
+/**
+* How many hardware interrupts since you last had to reset counters
+*/
+static uint8_t interruptCount;
+
+	/**
  * Add letter to end of frame buffer.
  */
 static void addLetter(uint8_t letter)
 {
-    uint8_t currentLetterLength = pgm_read_byte(&SYMBOL_LENGTH[letter]);
-    uint8_t currentLetterPosition = pgm_read_byte(&SYMBOL_POSITION[letter]);
-    uint8_t j;
-    for (j=0;j<currentLetterLength;j++)
-    {
-        frameBuffer[frameBufferCursor]=~pgm_read_byte(&ALPHABET[currentLetterPosition+j]);
-        frameBufferCursor++;
-    }
-    
-    //Add gaps between letters
-    frameBuffer[frameBufferCursor]=0xffu;
-    frameBufferCursor++;
-    frameBuffer[frameBufferCursor]=0xffu;
-    frameBufferCursor++;
+	uint8_t currentLetterLength = pgm_read_byte(&SYMBOL_LENGTH[letter]);
+	uint8_t currentLetterPosition = pgm_read_byte(&SYMBOL_POSITION[letter]);
+	uint8_t j;
+	for (j=0;j<currentLetterLength;j++)
+	{
+		frameBuffer[frameBufferCursor]=pgm_read_byte(&ALPHABET[currentLetterPosition+j]);
+		frameBufferCursor++;
+	}
+	
+	//Add gaps between letters
+	frameBuffer[frameBufferCursor]=0x00u;
+	frameBufferCursor++;
+	frameBuffer[frameBufferCursor]=0x00u;
+	frameBufferCursor++;
 }
 
 /**
@@ -107,16 +120,15 @@ void refreshFrameBuffer()
 	frameBufferCursor=1;
 	for(i=0;i<MESSAGE_LENGTH;i++)
 	{
-        ///@todo fix this for however we're storing messages
-        //currently just stores in location zero.
-        addLetter(outputText[0][i]);
+		///@todo fix this for however we're storing messages
+		addLetter(outputText[i]);
 	}
 	while (frameBufferCursor<SIZEOF_ARRAY(frameBuffer))
-    {
-        frameBuffer[frameBufferCursor]=0xffu;
-        frameBufferCursor++;
-    }
-    frameBufferCursor = 0;
+	{
+		frameBuffer[frameBufferCursor]=0xffu;
+		frameBufferCursor++;
+	}
+	frameBufferCursor = 0;
 }
 
 /**
@@ -132,105 +144,145 @@ static void printCol(uint8_t col)
  * Initialize timers and interrupts required for displaying text.
  */
 void initDisplay() {
-    ///@todo bring this out into a timer .h file
-    
-    //Timer0 interrupt
-    //How high you count
-    OCR0A = 0x10u;
-    
-    //compare match CTC, no multiplier
+	///@todo bring this out into a timer .h file
+	
+	//Timer0 interrupt
+	//How high you count
+	OCR0A = 0x10u;
+	
+	//compare match CTC, no multiplier
 	TCCR0A = 0x09u;
-    
-    //enable compare match interrupt.
+	
+	//enable compare match interrupt.
 	TIMSK0 = 0x02;
-    
+	
 	TCNT0 = 0;
-    
-    //Interrupt on INT1. Rising edge.
-    EICRA = 0x0cu;
-    //Enable INT1
-    EIMSK = 0x02u;
-    
-    sei();
+	
+	//Interrupt on INT1. Rising edge.
+	EICRA = 0x0cu;
+	//Enable INT1
+	EIMSK = 0x02u;
+	OUTPUT_VALUE(0XFF);
+	sei();
 }
+
+/**
+* Disable timers used for display.
+*/
+void killDisplay() {
+	
+	//disable compare match interrupt.
+	TIMSK0 = 0x00;
+	//disable INT1
+	EIMSK = 0x00u;
+	TCNT0 = 0;
+	cli();
+}
+
+
 
 /**
  * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
  */
 void timerZeroHandler() {
-    // Wait before reverting back to menu
-    if (waveTimer<displayRefreshTimeout)
-        waveTimer++;
-    else
-    {
-        //right before reverting to the menu, reset the shake ignore counter
-        if (waveTimer==displayRefreshTimeout)
-        {
-            ignoreShakes=2;
-            waveTimer++; //increment just so ignoreShakes doesn't get called again
-        }
-        
-        ///@todo somehow implement this with whatever menu system we come up with
-        //OUTPUT_VALUE(~(1<<messageNumber));
-    }
-    
-    //don't do anything if you're still in the timeout stage before the message
-    if (waveTimer>blackoutDelay)
-    {
-        //keep ticking until you reach the end of this row
-        if (columnTimer < columnTime)
-        {
-            columnTimer++;
-        }
-        else
-        {
-            columnTimer = 0;
-            //move to next row
-            if (currentColumnNumber < (SIZEOF_ARRAY(frameBuffer)-1))
-            {
-                currentColumnNumber++;
-                printCol(currentColumnNumber);
-            }
-        }
-    }
+	
+	
+	
+	// Wait before reverting back to menu
+	if (waveTimer<displayRefreshTimeout)
+		waveTimer++;
+	/*else
+	{
+		//right before reverting to the menu, reset the shake ignore counter
+		if (waveTimer==displayRefreshTimeout)
+		{
+			ignoreShakes=1;
+			waveTimer++; //increment just so ignoreShakes doesn't get called again
+		}
+		
+		///@todo somehow implement this with whatever menu system we come up with
+	}*/
+	
 
+	//need to make sure you finish the message you started.
+	if ((waveTimer>blackoutDelay)||(currentColumnNumber>0))
+	{
+		//only display text going forward
+		if (!goingRight) {
+			accel_data_t val;
+			accelReadValue(ACCEL_Y, &val);
+			if (val>20)
+			{
+				goingRight=true;
+				interruptCount=0;
+			}
+				
+		}
+		
+		//keep ticking until you reach the end of this column
+		if (columnTimer < columnTime) {
+			columnTimer++;
+		}
+		else {
+			columnTimer = 0;
+			//move to next row
+			if (currentColumnNumber < (SIZEOF_ARRAY(frameBuffer)-1))
+			{
+				currentColumnNumber++;
+				printCol(currentColumnNumber);
+			}
+		}
+	}
 }
 
 /**
  * Same shit but for external interrupt 1.
  */
 void intOneHandler() {
-    OUTPUT_VALUE(0xff);
-    
-    uint32_t nextWaveTime;
-    
-	if (ignoreShakes>0)
-		ignoreShakes--;
-	else
-	{
-		//only concern yourself with high-low transitions
-		///@todo figure out how to make accelerometer readings assymetrical
-		//if (!(PINA&0X80))
-		//{
+	
+	
+	uint32_t nextWaveTime;
+	
+	
+	//calculate time twice per cycle.
+	nextWaveTime = waveTimer;
+	
+
+	
 		
-        currentColumnNumber = 0;
-        printCol(currentColumnNumber);
-        nextWaveTime = waveTimer>>1; //allow time for forward and return trip.
-        
-        //some arbitrary percentage of the total cycle is the timeout.  This allows
-        //for the start of the cycle to be at the end of a wave, not in the middle.
-        blackoutDelay = (nextWaveTime>>1)+(nextWaveTime>>3);
-        
-        //divy up the amount of time per cycle by the number of rows you hope to display
-        //subtract the timeout to take care of the beginning, and the (mastercount>>4) to tighten up the end a bit.
-        columnTime = (nextWaveTime-(nextWaveTime>>4)-(blackoutDelay>>1))/(SIZEOF_ARRAY(frameBuffer));
-        
-        waveTimer=0;
-        
-        columnTimer=0;
-		//}
-	}
-    
+	//divy up the amount of time per cycle by the number of rows you hope to display
+	//subtract the timeout to take care of the beginning, and the (mastercount>>4) to tighten up the end a bit.
+	columnTime = (nextWaveTime-(nextWaveTime>>4)-(blackoutDelay>>1))/(SIZEOF_ARRAY(frameBuffer));
+	waveTimer=0;
+	
+	//some arbitrary percentage of the total cycle is the timeout.  This allows
+	//for the start of the cycle to be at the end of a wave, not in the middle.
+	blackoutDelay = (nextWaveTime>>1)+(nextWaveTime>>2);
+	
+	
+	//if (ignoreShakes>0)
+	//	ignoreShakes--;
+	//else
+	//{
+		//only concern yourself with high-low transitions
+		if (interruptCount==0)
+			interruptCount++;
+		else
+		{
+			if (goingRight)
+			{
+				//reset timers once per cycle
+				currentColumnNumber = 0;
+				printCol(currentColumnNumber);
+				goingRight=false;
+				interruptCount=0;
+				columnTimer=0;
+				
+			}
+		}
+		
+	//}
+	
 	///@todo clear interrupt flag in case there were any spurious interrupts during this vector
 	//GIFR = (1<<PCIF0);
 

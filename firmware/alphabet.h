@@ -46,8 +46,11 @@ extern void intOneHandler();
 /**
  * Matrix of output messages.
  */
-extern volatile uint8_t outputText[8][MESSAGE_LENGTH];
+extern volatile uint8_t outputText[MESSAGE_LENGTH];
 
-
+/**
+* Disable timers used for display.
+*/
+void killDisplay();
 
 #endif // ALPHABET_H_

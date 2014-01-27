@@ -54,7 +54,7 @@ int accelConfigFreefall() {
     accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x50u);
 
     // Enable freefall detect
-    accelWriteReg(ACCEL_REG_INT_EN, 0x04u);
+    accelWriteReg(ACCEL_REG_CTRL_4, 0x04u);
 
     // Freefall interrupt to INT2 pin
     accelWriteReg(ACCEL_REG_INT_PIN_MAP, 0x04u);
@@ -63,8 +63,11 @@ int accelConfigFreefall() {
     accelWriteReg(ACCEL_REG_CTRL_3, 0x00u);
 
     // Set threshold. Max = 0x7f, which equals 8 G
-    accelWriteReg(ACCEL_REG_FF_MT_THS, 0x0au);
+    accelWriteReg(ACCEL_REG_FF_MT_THS, 0x0fu);
 
+	//Set freefall debounce timeout
+	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X01);
+	
     // Set ACTIVE bit to wake chip
     accelWriteReg(ACCEL_REG_CTRL_1, 0x01u);
 

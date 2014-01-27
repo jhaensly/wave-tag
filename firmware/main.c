@@ -124,21 +124,27 @@ static int doSleep(void) {
 }
 
 static int doWaiting(void) {
-    return -2;
+    return 0;
 }
 
 static int doVLC(void) {
-    return -3;
+    return 0;
 }
 
 static int doWave(void) {
-    initDisplay();
-    outputText[0][0]=1;
-    outputText[0][1]=2;
-    outputText[0][2]=3;
-    refreshFrameBuffer();
-    while(1);
-    return 0;
+	//while button is pressed and held, stay in VLC mode
+	initDisplay();
+	outputText[0]=1;
+	outputText[1]=2;
+	outputText[2]=3;
+	refreshFrameBuffer();
+	
+	BUSY_WHILE(PIND&0x04);
+	
+	m_next_mode = MODE_VLC;
+	killDisplay();
+	
+	return 0;
 }
 
 static int doAccelTest(void) {
@@ -167,7 +173,7 @@ int main(void) {
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
-
+	OUTPUT_VALUE(0X00u);
 
     //Timer0 interrupt
 	//OCR0A = 50; //how high you count
@@ -181,10 +187,12 @@ int main(void) {
     //buttonInit();
     //buttonRegisterEventHandler(&handleButtonEvent);
     accelConfigFreefall();
-    m_current_mode = MODE_COUNT_TEST;
-    m_next_mode = MODE_COUNT_TEST;
-    doCountTest();
+    m_current_mode = MODE_WAVE;
+    m_next_mode = MODE_WAVE;
     while(1) {
+		
+		
+		
         int error;
 
         switch (m_current_mode)
@@ -231,20 +239,20 @@ int main(void) {
 /**
  * Interrupt handler for timer.  In charge of displaying text.
  */
-/*ISR(TIMER0_COMPA_vect) {
+ISR(TIMER0_COMPA_vect) {
     timerZeroHandler();
        
-}*/
+}
 
 
 /**
  * Interrupt handler for accelerometer interrupt
  */
 
-/*ISR (INT1_vect)
+ISR (INT1_vect)
 {
     intOneHandler();
-}*/
+}
 
 
 
