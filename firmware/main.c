@@ -11,7 +11,9 @@
 
 #include "util.h"
 #include "accel.h"
-//#include "button.h"
+#include "alphabet.h"
+#include "vlc.h"
+
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
@@ -27,14 +29,17 @@ volatile uint8_t led_measurement_bit;
 volatile uint8_t vlc_data[64];
 volatile uint8_t vlc_data_idx = 0;
 
+
 enum {
     MODE_SLEEP,
     MODE_WAITING,
     MODE_VLC,
     MODE_WAVE,
     MODE_ACCEL_TEST,
+    MODE_COUNT_TEST,
 } m_current_mode,
   m_next_mode;
+
 
 void error_state(int err_code) {
     int i = 20;
@@ -81,38 +86,7 @@ static void handleButtonEvent(button_event_t event) {
 }
 #endif
 
-uint8_t measureLED() {
-    PORTC = PORTC & 0xfcu; //kill both sides of the LED
-    DDRC = 0x03u;
 
-    //configure ADC
-    ADMUX  = 0x61u; //left adjust, avcc ref, ADC1
-    ADCSRA = 0x80u; //enable ADC, divide clock by 2
-
-    //raise the cathode
-    PORTC |= 0x01u;
-    _delay_us(100);
-
-    //take the LED anode out of the equation.
-    DDRC = 0x01u;
-    _delay_us(10);
-
-    //START CONVERSION
-    ADCSRA|=0b01000000;
-
-    while (ADCSRA & 0b01000000) {
-        ADCSRA |= (0b00010000);
-    }
-
-    uint8_t temp = ADCH;
-
-    ADCSRA = 0x00u;  //disable ADC
-    PORTC &= 0xf8u;
-    DDRC   = 0x03u;  //return to normal
-    ADMUX  = 0x00u;
-    ADCSRA = 0x00u;
-    return temp;
-}
 
 
 static int doSleep(void) {
@@ -120,15 +94,32 @@ static int doSleep(void) {
 }
 
 static int doWaiting(void) {
-    return -2;
+    return 0;
 }
 
 static int doVLC(void) {
-    return -3;
+    enableVLC();
+	_delay_us(100);
+	BUSY_UNTIL(PIND&0x04);
+	disableVLC();
+	m_next_mode = MODE_WAVE;
+	return 0;
 }
 
 static int doWave(void) {
-    return -4;
+	//while button is pressed and held, stay in VLC mode
+	initDisplay();
+	outputText[0]=1;
+	outputText[1]=2;
+	outputText[2]=3;
+	refreshFrameBuffer();
+	
+	BUSY_WHILE(PIND&0x04);
+	
+	m_next_mode = MODE_VLC;
+	killDisplay();
+	
+	return 0;
 }
 
 static int doAccelTest(void) {
@@ -142,32 +133,37 @@ static int doAccelTest(void) {
     return 0;
 }
 
+static int doCountTest(void) {
+    uint8_t i;
+    while(1)
+    {
+        i++;
+        OUTPUT_VALUE(i);
+        _delay_ms(10);
+    }
+    return 0;
+}
 
 int main(void) {
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
+	OUTPUT_VALUE(0X00u);
 
-    OUTPUT_VALUE(5u);
 
-    //Timer0 interrupt
-	//OCR0A = 50; //how high you count
-	//TCCR0A = 0x0A; //compare match CTC, no multiplier
-	//TIMSK0 = 0x02; //enable compare match interrupt.
-	//TCNT0 = 0;
 
     //configure interrupt
-    EICRA = 0x0cu; //rising edge
-    EIMSK = 0x02u;
-    sei();
+
 
     //buttonInit();
     //buttonRegisterEventHandler(&handleButtonEvent);
     accelConfigFreefall();
-    m_current_mode = MODE_ACCEL_TEST;
-    m_next_mode = MODE_ACCEL_TEST;
-
+    m_current_mode = MODE_WAVE;
+    m_next_mode = MODE_WAVE;
     while(1) {
+		
+		
+		
         int error;
 
         switch (m_current_mode)
@@ -192,6 +188,10 @@ int main(void) {
             error = doAccelTest();
             break;
 
+        case MODE_COUNT_TEST:
+            error = doCountTest();
+            break;
+                
         default:
             error = -1;
             break;
@@ -205,12 +205,43 @@ int main(void) {
     }
 }
 
-ISR (INT1_vect) {
-   // _delay_ms(1);
-   // OUTPUT_VALUE(0x00);
+
+
+/**
+ * Interrupt handler for timer.  In charge of displaying text.
+ */
+ISR(TIMER0_COMPA_vect) {
+	if (m_current_mode==MODE_WAVE) {
+		waveTimerZeroHandler();
+	}
+	if (m_current_mode==MODE_VLC) {
+		vlcTimerZeroHandler();
+	}
+       
 }
 
 
+/**
+ * Interrupt handler for accelerometer interrupt
+ */
+
+ISR (INT1_vect)
+{
+	if (m_current_mode==MODE_WAVE) {
+		waveIntOneHandler();
+	}
+}
+
+
+
+
+/*
+ISR (INT1_vect) {
+   // _delay_ms(1);
+   // OUTPUT_VALUE(0x00);
+}*/
+
+/*
 ISR(TIMER0_COMPA_vect) {
     if (m_vlc_in_progress) {
         uint8_t led_measurement = measureLED();
@@ -253,5 +284,5 @@ ISR(TIMER0_COMPA_vect) {
             led_measurement_time++;
         }
     }
-}
+}*/
 

@@ -23,7 +23,7 @@ typedef enum {
 /**
  * Define the accelerometer data format
  */
-typedef uint8_t accel_data_t;
+typedef int8_t accel_data_t;
 
 /**
  * Configure and enable the accelerometer's freefall detect mode.

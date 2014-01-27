@@ -34,7 +34,7 @@ enum {
     /**
      * Freefall/Motion threshold register
      *
-     * x___ ____ Debounce counter mode: 0 = Increments of decrements debounce, 1 = increments or clears
+     * x___ ____ Debounce counter mode: 0 = Increments or decrements debounce, 1 = increments or clears
      * -xxx xxxx Threashold
      */
     ACCEL_REG_FF_MT_THS = 0x17,
@@ -65,6 +65,15 @@ enum {
      */
     ACCEL_REG_CTRL_3 = 0x2c,
 
+	/**
+	* Freefall debounce count.
+	* xxxx xxxx debounce time
+	* actual time depends on ODR setting see table 49 on datasheet
+	*/
+	ACCEL_REG_FF_MT_COUNT = 0x18,
+	
+	
+	
 
     /**
      * Interrupt enable register (0 = disabled, 1 = enabled)
@@ -77,7 +86,7 @@ enum {
      * ____ __x_ Unused
      * ____ ___x Data ready interrupt
      */
-    ACCEL_REG_INT_EN = 0x2d,
+    ACCEL_REG_CTRL_4 = 0x2d,
 
 
     /**

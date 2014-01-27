@@ -1,6 +1,8 @@
 C_SRC   += main.c
 C_SRC   += accel.c
 C_SRC   += vlc_decoder_data.c
+C_SRC   += alphabet.c
+C_SRC    += vlc.c
 
 # The AVR device to compile for
 DEVICE      = attiny48
@@ -11,7 +13,7 @@ CLOCK       = 8000000
 # Options to avrdude which define the hardware you use for
 # uploading to the AVR and the interface where this hardware
 # is connected.
-PROGRAMMER  = -c avrispmkii -P usb -F -B 100
+PROGRAMMER  = -c avrispmkii -P usb -F -B 10
 
 # Parameters for avrdude to flash the fuses appropriately.
 FUSES       = -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
@@ -37,7 +39,7 @@ SIZE    = $(TC_PRE)size
 
 include version.inc
 
-CFLAGS  = -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES)
+CFLAGS  = -Wall -O3 -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES)
 LDFLAGS = -Wl,--gc-sections,-Map=$(MAP_FILE) 
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)
