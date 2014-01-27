@@ -162,7 +162,6 @@ void initDisplay() {
 	EICRA = 0x0cu;
 	//Enable INT1
 	EIMSK = 0x02u;
-	OUTPUT_VALUE(0XFF);
 	sei();
 }
 
@@ -184,7 +183,7 @@ void killDisplay() {
 /**
  * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
  */
-void timerZeroHandler() {
+void waveTimerZeroHandler() {
 	
 	
 	
@@ -238,7 +237,7 @@ void timerZeroHandler() {
 /**
  * Same shit but for external interrupt 1.
  */
-void intOneHandler() {
+void waveIntOneHandler() {
 	
 	
 	uint32_t nextWaveTime;

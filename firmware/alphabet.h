@@ -36,12 +36,12 @@ extern void refreshFrameBuffer();
 /**
  * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
  */
-extern void timerZeroHandler();
+extern void waveTimerZeroHandler();
 
 /**
  * Same shit but for external interrupt 1.
  */
-extern void intOneHandler();
+extern void waveIntOneHandler();
 
 /**
  * Matrix of output messages.

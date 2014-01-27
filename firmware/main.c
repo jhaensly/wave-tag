@@ -12,6 +12,7 @@
 #include "util.h"
 #include "accel.h"
 #include "alphabet.h"
+#include "vlc.h"
 
 
 // Edge detection sensitivity
@@ -85,38 +86,7 @@ static void handleButtonEvent(button_event_t event) {
 }
 #endif
 
-uint8_t measureLED() {
-    PORTC = PORTC & 0xfcu; //kill both sides of the LED
-    DDRC = 0x03u;
 
-    //configure ADC
-    ADMUX  = 0x61u; //left adjust, avcc ref, ADC1
-    ADCSRA = 0x80u; //enable ADC, divide clock by 2
-
-    //raise the cathode
-    PORTC |= 0x01u;
-    _delay_us(100);
-
-    //take the LED anode out of the equation.
-    DDRC = 0x01u;
-    _delay_us(10);
-
-    //START CONVERSION
-    ADCSRA|=0b01000000;
-
-    while (ADCSRA & 0b01000000) {
-        ADCSRA |= (0b00010000);
-    }
-
-    uint8_t temp = ADCH;
-
-    ADCSRA = 0x00u;  //disable ADC
-    PORTC &= 0xf8u;
-    DDRC   = 0x03u;  //return to normal
-    ADMUX  = 0x00u;
-    ADCSRA = 0x00u;
-    return temp;
-}
 
 
 static int doSleep(void) {
@@ -128,7 +98,12 @@ static int doWaiting(void) {
 }
 
 static int doVLC(void) {
-    return 0;
+    enableVLC();
+	_delay_us(100);
+	BUSY_UNTIL(PIND&0x04);
+	disableVLC();
+	m_next_mode = MODE_WAVE;
+	return 0;
 }
 
 static int doWave(void) {
@@ -175,11 +150,7 @@ int main(void) {
     PORTD = 0x00u;
 	OUTPUT_VALUE(0X00u);
 
-    //Timer0 interrupt
-	//OCR0A = 50; //how high you count
-	//TCCR0A = 0x0A; //compare match CTC, no multiplier
-	//TIMSK0 = 0x02; //enable compare match interrupt.
-	//TCNT0 = 0;
+
 
     //configure interrupt
 
@@ -240,7 +211,12 @@ int main(void) {
  * Interrupt handler for timer.  In charge of displaying text.
  */
 ISR(TIMER0_COMPA_vect) {
-    timerZeroHandler();
+	if (m_current_mode==MODE_WAVE) {
+		waveTimerZeroHandler();
+	}
+	if (m_current_mode==MODE_VLC) {
+		vlcTimerZeroHandler();
+	}
        
 }
 
@@ -251,7 +227,9 @@ ISR(TIMER0_COMPA_vect) {
 
 ISR (INT1_vect)
 {
-    intOneHandler();
+	if (m_current_mode==MODE_WAVE) {
+		waveIntOneHandler();
+	}
 }
 
 
