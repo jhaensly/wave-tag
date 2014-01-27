@@ -14,14 +14,16 @@
 #include <stdint.h>
 #include <avr/pgmspace.h>
 
-/// The number of elements in the matrix
-#define VLC_DECODER_DATA_ELEMENTS (100)
+enum {
+    /// The number of elements in the matrix
+    VLC_DECODER_DATA_ELEMENTS = 100,
 
-/// The number of columns in each row of the matrix
-#define VLC_DECODER_DATA_COLUMNS  (10)
+    /// The number of columns in each row of the matrix
+    VLC_DECODER_DATA_COLUMNS  = 10,
 
-/// The value used to denote invalid symbols
-#define VLC_DECODER_DATA_INVALID  (0xff)
+    /// The value used to denote invalid symbols
+    VLC_DECODER_DATA_INVALID  = 0xff,
+};
 
 /// The decoder matrix
 extern const uint8_t VLC_DECODER_DATA[VLC_DECODER_DATA_ELEMENTS] PROGMEM;
