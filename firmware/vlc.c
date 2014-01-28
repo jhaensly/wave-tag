@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include "vlc.h"
+#include "display.h"
 #include "util.h"
 #include "alphabet.h"
 

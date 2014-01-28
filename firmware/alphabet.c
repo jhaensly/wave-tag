@@ -6,9 +6,12 @@
  * Font for Wavetag DVT1
  */
 
+#include <avr/interrupt.h>
+#include <stdbool.h>
+
 #include "alphabet.h"
 #include "accel.h"
-#include <avr/interrupt.h>
+#include "display.h"
 #include "util.h"
 
 /**
@@ -77,7 +80,7 @@ static const uint8_t SYMBOL_LENGTH[43] PROGMEM = {6,6,6,6,6,5,5,7,6,6,6,6,5,7,7,
  */
 static const uint8_t SYMBOL_POSITION [43] PROGMEM = {0,6, 12, 18, 24, 30, 35, 40, 47, 53, 59, 65, 71, 76, 83, 90, 96, 102, 108, 114, 119, 125, 131, 137, 144, 150, 156, 162, 168, 173, 178, 184, 189, 194, 199, 205, 211, 217, 219, 225,232,234,236};
 
-	
+
 /**
 * Records current direction of device.  Important because
 * accelerometer pin is symmetrical.
@@ -102,7 +105,7 @@ static void addLetter(uint8_t letter)
 		frameBuffer[frameBufferCursor]=pgm_read_byte(&ALPHABET[currentLetterPosition+j]);
 		frameBufferCursor++;
 	}
-	
+
 	//Add gaps between letters
 	frameBuffer[frameBufferCursor]=0x00u;
 	frameBufferCursor++;
@@ -115,7 +118,7 @@ static void addLetter(uint8_t letter)
  */
 void refreshFrameBuffer()
 {
-	
+
 	uint8_t i;
 	frameBufferCursor=1;
 	for(i=0;i<MESSAGE_LENGTH;i++)
@@ -145,19 +148,19 @@ static void printCol(uint8_t col)
  */
 void initDisplay() {
 	///@todo bring this out into a timer .h file
-	
+
 	//Timer0 interrupt
 	//How high you count
 	OCR0A = 0x10u;
-	
+
 	//compare match CTC, no multiplier
 	TCCR0A = 0x09u;
-	
+
 	//enable compare match interrupt.
 	TIMSK0 = 0x02;
-	
+
 	TCNT0 = 0;
-	
+
 	//Interrupt on INT1. Rising edge.
 	EICRA = 0x0cu;
 	//Enable INT1
@@ -169,7 +172,7 @@ void initDisplay() {
 * Disable timers used for display.
 */
 void killDisplay() {
-	
+
 	//disable compare match interrupt.
 	TIMSK0 = 0x00;
 	//disable INT1
@@ -184,9 +187,9 @@ void killDisplay() {
  * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
  */
 void waveTimerZeroHandler() {
-	
-	
-	
+
+
+
 	// Wait before reverting back to menu
 	if (waveTimer<displayRefreshTimeout)
 		waveTimer++;
@@ -198,10 +201,10 @@ void waveTimerZeroHandler() {
 			ignoreShakes=1;
 			waveTimer++; //increment just so ignoreShakes doesn't get called again
 		}
-		
+
 		///@todo somehow implement this with whatever menu system we come up with
 	}*/
-	
+
 
 	//need to make sure you finish the message you started.
 	if ((waveTimer>blackoutDelay)||(currentColumnNumber>0))
@@ -215,9 +218,9 @@ void waveTimerZeroHandler() {
 				goingRight=true;
 				interruptCount=0;
 			}
-				
+
 		}
-		
+
 		//keep ticking until you reach the end of this column
 		if (columnTimer < columnTime) {
 			columnTimer++;
@@ -238,27 +241,27 @@ void waveTimerZeroHandler() {
  * Same shit but for external interrupt 1.
  */
 void waveIntOneHandler() {
-	
-	
+
+
 	uint32_t nextWaveTime;
-	
-	
+
+
 	//calculate time twice per cycle.
 	nextWaveTime = waveTimer;
-	
 
-	
-		
+
+
+
 	//divy up the amount of time per cycle by the number of rows you hope to display
 	//subtract the timeout to take care of the beginning, and the (mastercount>>4) to tighten up the end a bit.
 	columnTime = (nextWaveTime-(nextWaveTime>>4)-(blackoutDelay>>1))/(SIZEOF_ARRAY(frameBuffer));
 	waveTimer=0;
-	
+
 	//some arbitrary percentage of the total cycle is the timeout.  This allows
 	//for the start of the cycle to be at the end of a wave, not in the middle.
 	blackoutDelay = (nextWaveTime>>1)+(nextWaveTime>>2);
-	
-	
+
+
 	//if (ignoreShakes>0)
 	//	ignoreShakes--;
 	//else
@@ -276,12 +279,12 @@ void waveIntOneHandler() {
 				goingRight=false;
 				interruptCount=0;
 				columnTimer=0;
-				
+
 			}
 		}
-		
+
 	//}
-	
+
 	///@todo clear interrupt flag in case there were any spurious interrupts during this vector
 	//GIFR = (1<<PCIF0);
 

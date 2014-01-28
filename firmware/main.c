@@ -5,29 +5,20 @@
  */
 
 #include <avr/io.h>
-#include <util/delay.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
 #include <stdbool.h>
 
-#include "util.h"
 #include "accel.h"
 #include "alphabet.h"
-#include "vlc.h"
+#include "display.h"
 #include "module_id.h"
+#include "util.h"
+#include "vlc.h"
 
 #define BUTTON_RELEASED()   (PIND & 4)
 #define BUTTON_PRESSED()    (!BUTTON_RELEASED())
 
-
-static volatile bool m_vlc_in_progress;
-volatile uint8_t led_measurement_min;
-volatile uint8_t led_measurement_max;
-volatile uint8_t led_measurement_thresh;
-volatile uint8_t led_measurement_time;
-volatile uint8_t led_measurement_bit;
-
-volatile uint8_t vlc_data[64];
-volatile uint8_t vlc_data_idx = 0;
 
 static volatile enum {
     APP_MODE_SLEEP,
