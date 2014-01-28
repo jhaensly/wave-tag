@@ -45,7 +45,7 @@ SIZE    = $(TC_PRE)size
 include version.inc
 
 CPPFLAGS= -DF_CPU=$(CLOCK) $(DEFINES)
-CFLAGS  = -Os -mmcu=$(DEVICE) $(CPPFLAGS) \
+CFLAGS  = -Os -std=c99 -mmcu=$(DEVICE) $(CPPFLAGS) \
 			-Wall -Werror -Wno-empty-body -Wmissing-field-initializers \
 			-Wpointer-arith -Wuninitialized -Wstrict-overflow -Wundef \
 			-Wlogical-op -Wshadow -fshort-enums
