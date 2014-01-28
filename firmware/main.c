@@ -13,7 +13,10 @@
 #include "accel.h"
 #include "alphabet.h"
 #include "vlc.h"
+#include "module_id.h"
 
+#define BUTTON_RELEASED()   (PIND & 4)
+#define BUTTON_PRESSED()    (!BUTTON_RELEASED())
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
@@ -29,100 +32,66 @@ volatile uint8_t led_measurement_bit;
 volatile uint8_t vlc_data[64];
 volatile uint8_t vlc_data_idx = 0;
 
-
-enum {
-    MODE_SLEEP,
-    MODE_WAITING,
-    MODE_VLC,
-    MODE_WAVE,
-    MODE_ACCEL_TEST,
-    MODE_COUNT_TEST,
+static volatile enum {
+    APP_MODE_SLEEP,
+    APP_MODE_WAITING,
+    APP_MODE_VLC,
+    APP_MODE_WAVE,
+    APP_MODE_ACCEL_TEST,
+    APP_MODE_COUNT_TEST,
 } m_current_mode,
   m_next_mode;
 
+void error_state(error_t err_code) {
+    static const uint8_t fw_ver = (APP_VERSION_MAJOR << 4) | APP_VERSION_MINOR;
 
-void error_state(int err_code) {
-    int i = 20;
-
-    while (i-- > 0) {
+    for (int i=0; i<10; i++) {
         OUTPUT_VALUE(err_code);
         _delay_ms(100);
 
-        OUTPUT_VALUE(0);
+        OUTPUT_VALUE(fw_ver);
         _delay_ms(100);
     }
 
     // TODO: Reset device
 }
 
-#if 0
-static void handleButtonEvent(button_event_t event) {
-    switch (event) {
-        case BUTTON_SINGLE_PRESS:
-            break;
 
-        case BUTTON_DOUBLE_PRESS:
-            break;
-
-        case BUTTON_HOLD_START:
-            m_vlc_in_progress       = true;
-            led_measurement_max     = 0;
-            led_measurement_min     = UINT8_MAX;
-            led_measurement_thresh  = UINT8_MAX / 2;
-            led_measurement_time    = 0;
-            led_measurement_bit     = 0;
-
-            // start timer
-            break;
-
-        case BUTTON_HOLD_RELEASE:
-            m_vlc_in_progress = false;
-            // stop timer
-            break;
-
-        default:
-            break;
-    }
-}
-#endif
-
-
-
-
-static int doSleep(void) {
-    return -1;
+static error_t doSleep(void) {
+    return ERR_APP_INVALID_MODE;
 }
 
-static int doWaiting(void) {
-    return 0;
+static error_t doWaiting(void) {
+    return ERR_APP_INVALID_MODE;
 }
 
-static int doVLC(void) {
+static error_t doVLC(void) {
     enableVLC();
 	_delay_us(100);
-	BUSY_UNTIL(PIND&0x04);
+
+	BUSY_UNTIL(BUTTON_RELEASED());
 	disableVLC();
-	m_next_mode = MODE_WAVE;
-	return 0;
+
+	m_next_mode = APP_MODE_WAVE;
+	return ERR_NONE;
 }
 
-static int doWave(void) {
+static error_t doWave(void) {
 	//while button is pressed and held, stay in VLC mode
 	initDisplay();
 	outputText[0]=1;
 	outputText[1]=2;
 	outputText[2]=3;
 	refreshFrameBuffer();
-	
-	BUSY_WHILE(PIND&0x04);
-	
-	m_next_mode = MODE_VLC;
+
+	BUSY_UNTIL(BUTTON_PRESSED());
+
 	killDisplay();
-	
-	return 0;
+	m_next_mode = APP_MODE_VLC;
+	return ERR_NONE;
 }
 
-static int doAccelTest(void) {
+static error_t doAccelTest(void) {
     while (m_current_mode == m_next_mode) {
         accel_data_t val;
         accelReadValue(ACCEL_Y, &val);
@@ -130,18 +99,18 @@ static int doAccelTest(void) {
         _delay_ms(10);
     }
 
-    return 0;
+    return ERR_NONE;
 }
 
-static int doCountTest(void) {
-    uint8_t i;
+static error_t doCountTest(void) {
+    uint8_t i = 0;
     while(1)
     {
         i++;
         OUTPUT_VALUE(i);
         _delay_ms(10);
     }
-    return 0;
+    return ERR_NONE;
 }
 
 int main(void) {
@@ -150,50 +119,41 @@ int main(void) {
     PORTD = 0x00u;
 	OUTPUT_VALUE(0X00u);
 
-
-
-    //configure interrupt
-
-
-    //buttonInit();
-    //buttonRegisterEventHandler(&handleButtonEvent);
     accelConfigFreefall();
-    m_current_mode = MODE_WAVE;
-    m_next_mode = MODE_WAVE;
+    m_current_mode  = APP_MODE_WAVE;
+    m_next_mode     = APP_MODE_WAVE;
+
     while(1) {
-		
-		
-		
-        int error;
+        error_t error;
 
         switch (m_current_mode)
         {
-        case MODE_SLEEP:
+        case APP_MODE_SLEEP:
             error = doSleep();
             break;
 
-        case MODE_WAITING:
+        case APP_MODE_WAITING:
             error = doWaiting();
             break;
 
-        case MODE_VLC:
+        case APP_MODE_VLC:
             error = doVLC();
             break;
 
-        case MODE_WAVE:
+        case APP_MODE_WAVE:
             error = doWave();
             break;
 
-        case MODE_ACCEL_TEST:
+        case APP_MODE_ACCEL_TEST:
             error = doAccelTest();
             break;
 
-        case MODE_COUNT_TEST:
+        case APP_MODE_COUNT_TEST:
             error = doCountTest();
             break;
-                
+
         default:
-            error = -1;
+            error = ERR_APP_INVALID_MODE;
             break;
         }
 
@@ -211,13 +171,13 @@ int main(void) {
  * Interrupt handler for timer.  In charge of displaying text.
  */
 ISR(TIMER0_COMPA_vect) {
-	if (m_current_mode==MODE_WAVE) {
+	if (m_current_mode == APP_MODE_WAVE) {
 		waveTimerZeroHandler();
 	}
-	if (m_current_mode==MODE_VLC) {
+	if (m_current_mode == APP_MODE_VLC) {
 		vlcTimerZeroHandler();
 	}
-       
+
 }
 
 
@@ -227,7 +187,7 @@ ISR(TIMER0_COMPA_vect) {
 
 ISR (INT1_vect)
 {
-	if (m_current_mode==MODE_WAVE) {
+	if (m_current_mode == APP_MODE_WAVE) {
 		waveIntOneHandler();
 	}
 }
