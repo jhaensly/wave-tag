@@ -24,14 +24,12 @@ typedef enum {
     /// Invalid application mode
     ERR_APP_INVALID_MODE    = 0x00 | MODULE_ID_APP,
 
-    /// NULL callback
-    ERR_TIMER_CB_NULL       = 0x00 | MODULE_ID_TIMER,
+    /// Invalid timer parameters
+    ERR_TIMER_INVALID_PARAM = 0x00 | MODULE_ID_TIMER,
     /// All timers currently in use
     ERR_TIMER_BUSY          = 0x10 | MODULE_ID_TIMER,
-    /// NULL timer
-    ERR_TIMER_NULL          = 0x20 | MODULE_ID_TIMER,
     /// Timer not running
-    ERR_TIMER_INVALID       = 0x30 | MODULE_ID_TIMER,
+    ERR_TIMER_STOPPED       = 0x20 | MODULE_ID_TIMER,
 } error_t;
 
 

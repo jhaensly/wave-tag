@@ -13,6 +13,7 @@
 #include "alphabet.h"
 #include "display.h"
 #include "module_id.h"
+#include "timer.h"
 #include "util.h"
 #include "vlc.h"
 
@@ -27,6 +28,7 @@ static volatile enum {
     APP_MODE_WAVE,
     APP_MODE_ACCEL_TEST,
     APP_MODE_COUNT_TEST,
+    APP_MODE_TIMER_TEST,
 } m_current_mode,
   m_next_mode;
 
@@ -69,6 +71,7 @@ static error_t doVLC(void) {
 }
 
 static error_t doWave(void) {
+#if 0
 	//while button is pressed and held, stay in VLC mode
 	initDisplay();
 	outputText[0]=1;
@@ -80,6 +83,7 @@ static error_t doWave(void) {
 
 	killDisplay();
 	m_next_mode = APP_MODE_VLC;
+#endif
 	return ERR_NONE;
 }
 
@@ -98,12 +102,25 @@ static error_t doAccelTest(void) {
 
 static error_t doCountTest(void) {
     uint8_t i = 0;
-    while(1)
-    {
+    while(1) {
         i++;
         OUTPUT_VALUE(i);
         _delay_ms(10);
     }
+    return ERR_NONE;
+}
+
+static volatile uint8_t m_timer_test_counter;
+static void incrementCounter(void) {
+    m_timer_test_counter++;
+}
+
+static error_t doTimerTest(void) {
+    timer0Start(&incrementCounter, UINT8_MAX, true);
+    while(m_current_mode == m_next_mode) {
+        OUTPUT_VALUE(m_timer_test_counter);
+    }
+    timer0Stop();
     return ERR_NONE;
 }
 
@@ -114,9 +131,11 @@ int main(void) {
 	OUTPUT_VALUE(0X00u);
 
     accelConfigFreefall();
-    m_current_mode  = APP_MODE_WAVE;
-    m_next_mode     = APP_MODE_WAVE;
+    timerInit();
+    m_current_mode  = APP_MODE_TIMER_TEST;
+    m_next_mode     = APP_MODE_TIMER_TEST;
 
+    sei();
     while(1) {
         error_t error;
 
@@ -146,12 +165,16 @@ int main(void) {
             error = doCountTest();
             break;
 
+        case APP_MODE_TIMER_TEST:
+            error = doTimerTest();
+            break;
+
         default:
             error = ERR_APP_INVALID_MODE;
             break;
         }
 
-        if (error != 0) {
+        if (error != ERR_NONE) {
             error_state(error);
         }
 
@@ -160,7 +183,7 @@ int main(void) {
 }
 
 
-
+#if 0
 /**
  * Interrupt handler for timer.  In charge of displaying text.
  */
@@ -171,8 +194,8 @@ ISR(TIMER0_COMPA_vect) {
 	if (m_current_mode == APP_MODE_VLC) {
 		vlcTimerZeroHandler();
 	}
-
 }
+#endif
 
 /**
  * Interrupt handler for accelerometer interrupt
