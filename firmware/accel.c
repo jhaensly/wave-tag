@@ -49,7 +49,7 @@ static void accelWriteReg(uint8_t reg, uint8_t val) {
     TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
 }
 
-int accelConfigFreefall() {
+error_t accelConfigFreefall() {
     // Enable freefall detect on y; Event latch disable
     accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x50u);
 
@@ -67,19 +67,19 @@ int accelConfigFreefall() {
 
 	//Set freefall debounce timeout
 	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X01);
-	
+
     // Set ACTIVE bit to wake chip
     accelWriteReg(ACCEL_REG_CTRL_1, 0x01u);
 
-    return 0;
+    return ERR_NONE;
 }
 
-int accelReadValue(accel_axis_t axis, accel_data_t* data) {
+error_t accelReadValue(accel_axis_t axis, accel_data_t* data) {
     static const uint8_t axis_reg[] = {
         ACCEL_OUT_X_MSB,
         ACCEL_OUT_Y_MSB,
         ACCEL_OUT_Z_MSB };
     *data = accelReadReg(axis_reg[axis]);
 
-    return 0;
+    return ERR_NONE;
 }

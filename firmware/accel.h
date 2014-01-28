@@ -10,6 +10,7 @@
 #define ACCEL_H_
 
 #include <stdint.h>
+#include "module_id.h"
 
 /**
  * Define the accelerometer axes
@@ -30,7 +31,7 @@ typedef int8_t accel_data_t;
  *
  * @return 0 if success, nonzero otherwise.
  */
-extern int accelConfigFreefall();
+extern error_t accelConfigFreefall();
 
 /**
  * Read the value of the specified axis.
@@ -39,6 +40,6 @@ extern int accelConfigFreefall();
  * @param[out]  data    The data read.
  * @return 0 if success, nonzero otherwise.
  */
-extern int accelReadValue(accel_axis_t axis, accel_data_t* data);
+extern error_t accelReadValue(accel_axis_t axis, accel_data_t* data);
 
 #endif // ACCEL_H_

@@ -92,14 +92,16 @@ static error_t doWave(void) {
 }
 
 static error_t doAccelTest(void) {
-    while (m_current_mode == m_next_mode) {
+    error_t err = ERR_NONE;
+    while ((m_current_mode == m_next_mode) &&
+           (err == ERR_NONE)) {
         accel_data_t val;
-        accelReadValue(ACCEL_Y, &val);
+        err = accelReadValue(ACCEL_Y, &val);
         OUTPUT_VALUE(val);
         _delay_ms(10);
     }
 
-    return ERR_NONE;
+    return err;
 }
 
 static error_t doCountTest(void) {
