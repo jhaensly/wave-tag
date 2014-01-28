@@ -76,6 +76,10 @@ install: flash fuse
 load: all
 	bootloadHID $(HEX_FILE)
 
+.PHONY : doc
+doc:
+	doxygen Doxyfile
+
 .PHONY : clean
 clean:
 	rm -f $(OBJ_DIR)/*.o
