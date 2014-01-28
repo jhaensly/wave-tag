@@ -8,7 +8,7 @@ C_SRC    += vlc.c
 DEVICE      = attiny48
 
 # Target AVR clock rate in Hertz
-CLOCK       = 8000000
+DEFINES    += -DF_CPU=1000000
 
 # Options to avrdude which define the hardware you use for
 # uploading to the AVR and the interface where this hardware
@@ -16,6 +16,21 @@ CLOCK       = 8000000
 PROGRAMMER  = -c avrispmkii -P usb -F -B 10
 
 # Parameters for avrdude to flash the fuses appropriately.
+# For the ATTiny48, clear to enable:
+#   Fuse high byte
+#   x___ ____ RSTDSBL:  Disable external reset (0b1: reset enabled)
+#   _x__ ____ DWEN:     Enable debugWIRE (0b1: debug disabled)
+#   __x_ ____ SPIEN:    Enable SPI programming (0b0: SPI enabled)
+#   ___x ____ WDTON:    Watchdog always on (0b1: disabled)
+#   ____ x___ EESAVE:   Preserve EEPROM across chip erase (0b1: not preserved)
+#   ____ _xxx BODLEVEL: Brown-out detector trigger level (0b111: BOD disabled)
+#
+#   Fuse low byte
+#   x___ ____ CKDIV8:   Divide clock by 8 (0b0: sys clock div 8)
+#   _x__ ____ CKOUT:    Output sys clock on the CLKO pin (0b1: disabled) 
+#   __xx ____ SUT:      Select start up time (0b10: slowly rising power)
+#   ____ xx__           Unused
+#   ____ __xx CKSEL:    Select clock source (0b10: 8MHz internal osc)
 FUSES       = -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
 
 SRC_PATH    = $(shell pwd)
@@ -39,7 +54,7 @@ SIZE    = $(TC_PRE)size
 
 include version.inc
 
-CFLAGS  = -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES) \
+CFLAGS  = -std=c99 -Os -mmcu=$(DEVICE) $(DEFINES) \
 			-Wall -Werror -Wno-tautological-compare -Wno-empty-body \
 			-Wmissing-field-initializers -Wpointer-arith -Wuninitialized \
 			-Wstrict-overflow -Wundef -Wlogical-op -Wshadow -fshort-enums
