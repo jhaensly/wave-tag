@@ -6,12 +6,12 @@
  * VLC support for Wavetag DVT1
  */
 
-
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdbool.h>
 
+#include "vlc.h"
 #include "util.h"
 #include "alphabet.h"
 
@@ -30,10 +30,68 @@ static uint8_t timeMin;
 static uint8_t timeMax;
 static uint8_t timeThreshold;
 static uint8_t currentMessage;
-/**
-* Measure light value from LED.
-*/	
-uint8_t measureLED() {
+
+
+error_t enableVLC() {
+	//Timer0 interrupt
+	preambleLock = false;
+	OCR0A = 50;     //how high you count
+	TCCR0A = 0x0A;  //compare match CTC, no multiplier
+	TIMSK0 = 0x02;  //enable compare match interrupt.
+	TCNT0 = 0;
+	led_measurement_max = 0;
+    led_measurement_min = UINT8_MAX;
+
+	preambleLock=0;
+	timeMin = 0xff;
+	timeMax = 0x00;
+	timeThreshold = 0x80;
+	currentMessage = 0x00;
+	sei();
+
+    return ERR_NONE;
+}
+
+error_t disableVLC() {
+	TIMSK0 = 0;
+    return ERR_NONE;
+}
+
+
+static bool isPreamble(uint8_t time)
+{
+	//if (preambleLock)
+	//	return false;
+
+	if (timeMin > time) {
+		timeMin = time;
+		timeThreshold = FIND_MIDPOINT(timeMin, timeMax);
+	}
+	if (timeMax < time) {
+		timeMax = time;
+		timeThreshold = FIND_MIDPOINT(timeMin,timeMax);
+	}
+
+	//make sure your max and mins are consistent
+	//if (((timeMax-time)>TIME_MEASUREMENT_SENSITIVITY)||((time-timeMin)>TIME_MEASUREMENT_SENSITIVITY)) {
+	//	return false;
+	//}
+
+	currentMessage<<=1;
+	OUTPUT_VALUE(currentMessage);
+	if (time>timeThreshold)
+	{
+		currentMessage|=0x01;
+	}
+	if ((currentMessage&0b11111)==0b10100) {
+		preambleLock = true;
+		//OUTPUT_VALUE(0xff);
+		return true;
+	}
+	return false;
+}
+
+void vlcTimerZeroHandler() {
 	PORTC = PORTC & 0xfcu; //kill both sides of the LED
 	DDRC = 0x03u;
 
@@ -56,84 +114,13 @@ uint8_t measureLED() {
 		ADCSRA |= (0b00010000);
 	}
 
-	uint8_t temp = ADCH;
+	uint8_t led_measurement = ADCH;
 
 	ADCSRA = 0x00u;  //disable ADC
 	PORTC &= 0xf8u;
 	DDRC   = 0x03u;  //return to normal
 	ADMUX  = 0x00u;
 	ADCSRA = 0x00u;
-	return temp;
-}	
-
-/**
-* Enable VLC detection
-*/
-void enableVLC() {
-	//Timer0 interrupt
-	preambleLock = false;
-	OCR0A = 50; //how high you count
-	TCCR0A = 0x0A; //compare match CTC, no multiplier
-	TIMSK0 = 0x02; //enable compare match interrupt.
-	TCNT0 = 0;
-	led_measurement_max=led_measurement_min = measureLED();
-	
-	preambleLock=0;
-	timeMin = 0xff;
-	timeMax = 0x00;
-	timeThreshold = 0x80;
-	currentMessage = 0x00;
-	sei();
-	
-	}
-
-/**
-* Disables VLC detection
-*/	
-void disableVLC() {
-	TIMSK0 = 0;
-}
-
-
-bool isPreamble(uint8_t time)
-{
-	//if (preambleLock)
-	//	return false;
-
-	if (timeMin > time) {
-		timeMin = time;
-		timeThreshold = FIND_MIDPOINT(timeMin, timeMax);
-	}
-	if (timeMax < time) {
-		timeMax = time;
-		timeThreshold = FIND_MIDPOINT(timeMin,timeMax);
-	}
-	
-	//make sure your max and mins are consistent
-	//if (((timeMax-time)>TIME_MEASUREMENT_SENSITIVITY)||((time-timeMin)>TIME_MEASUREMENT_SENSITIVITY)) {
-	//	return false;
-	//}
-	
-	currentMessage<<=1;
-	OUTPUT_VALUE(currentMessage);
-	if (time>timeThreshold)
-	{
-		currentMessage|=0x01;
-	}
-	if ((currentMessage&0b11111)==0b10100) {
-		preambleLock = true;
-		//OUTPUT_VALUE(0xff);
-		return true;
-	}
-	return false;
-}
-
-/**
-* Performs interrupt operations for VLC mode
-*/
-void vlcTimerZeroHandler() {
-	
-	uint8_t led_measurement = measureLED();
 
 	// Maximum and minimum values are primarily a function of the transmitter's distance from
 	// the board. Since that is variable, find good values dynamically. At the start of a
@@ -150,11 +137,11 @@ void vlcTimerZeroHandler() {
 	}
 	// At this point, we have established the dynamic range and set our threshold at the midpoint.
 	// The VLC protocol encodes information on the duration between edges, so look for edges.
-	else if ((led_measurement_bit == 0) && 
+	else if ((led_measurement_bit == 0) &&
 		(led_measurement > (led_measurement_thresh + LED_MEASUREMENT_SENSITIVITY))) {
 		// Handle rising edge
 		led_measurement_bit = 1;
-		
+
 			if (isPreamble(led_measurement_time));
 			{
 				//OUTPUT_VALUE(0XFF);

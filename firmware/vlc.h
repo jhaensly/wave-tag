@@ -9,21 +9,17 @@
 #ifndef VLC_H_
 #define VLC_H_
 
+#include "module_id.h"
+
 /**
 * Enable VLC detection
 */
-extern void enableVLC();
+extern error_t enableVLC();
 
 /**
 * Disables VLC detection
-*/	
-extern void disableVLC();
-
-/**
-* Measure light value from LED.
-*/	
-extern uint8_t measureLED();
-
+*/
+extern error_t disableVLC();
 
 /**
 * Performs interrupt operations for VLC mode
