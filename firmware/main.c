@@ -138,12 +138,17 @@ static const handle_app_mode_t app_mode_handler[] = {
 
 
 int main(void) {
+    // We're not using SPI, so cut power to that peripheral to save power
+    PRR |= PRSPI;
+
+    accelInit();
+
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
 	OUTPUT_VALUE(0x00u);
 
-    accelConfigFreefall();
+    accelEnableFreefall();
     m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;
 

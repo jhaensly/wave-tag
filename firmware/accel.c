@@ -11,6 +11,8 @@
 #include "util.h"
 
 static void twi_start(uint8_t addr) {
+    PRR &= !PRTWI;
+
     TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
     BUSY_UNTIL(TWCR & (1<<TWINT));
 
@@ -38,6 +40,7 @@ static uint8_t accelReadReg(uint8_t reg) {
     BUSY_UNTIL(TWCR & (1<<TWINT));
 
     TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
+    PRR |= PRTWI;
     return TWDR;
 }
 
@@ -47,9 +50,15 @@ static void accelWriteReg(uint8_t reg, uint8_t val) {
     twi_send_byte(val);
 
     TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
+    PRR |= PRTWI;
 }
 
-int accelConfigFreefall() {
+error_t accelInit(void) {
+    PRR |= PRTWI;
+    return ERR_NONE;
+}
+
+error_t accelEnableFreefall(void) {
     // Enable freefall detect on y; Event latch disable
     accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x10u);
 
@@ -67,19 +76,23 @@ int accelConfigFreefall() {
 
 	//Set freefall debounce timeout
 	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X00);
-	
+
     // Set ACTIVE bit to wake chip
     accelWriteReg(ACCEL_REG_CTRL_1, 0x01u);
 
-    return 0;
+    return ERR_NONE;
 }
 
-int accelReadValue(accel_axis_t axis, accel_data_t* data) {
+error_t accelDisable(void) {
+    return ERR_NONE;
+}
+
+error_t accelReadValue(accel_axis_t axis, accel_data_t* data) {
     static const uint8_t axis_reg[] = {
         ACCEL_OUT_X_MSB,
         ACCEL_OUT_Y_MSB,
         ACCEL_OUT_Z_MSB };
     *data = accelReadReg(axis_reg[axis]);
 
-    return 0;
+    return ERR_NONE;
 }
