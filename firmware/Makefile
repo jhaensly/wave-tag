@@ -39,7 +39,10 @@ SIZE    = $(TC_PRE)size
 
 include version.inc
 
-CFLAGS  = -Wall -O3 -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES)
+CFLAGS  = -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES) \
+			-Wall -Werror -Wno-tautological-compare -Wno-empty-body \
+			-Wmissing-field-initializers -Wpointer-arith -Wuninitialized \
+			-Wstrict-overflow -Wundef -Wlogical-op -Wshadow -fshort-enums
 LDFLAGS = -Wl,--gc-sections,-Map=$(MAP_FILE) 
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)
@@ -72,6 +75,10 @@ install: flash fuse
 .PHONY : load
 load: all
 	bootloadHID $(HEX_FILE)
+
+.PHONY : doc
+doc:
+	doxygen Doxyfile
 
 .PHONY : clean
 clean:
