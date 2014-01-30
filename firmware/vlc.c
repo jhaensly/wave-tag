@@ -202,9 +202,9 @@ void vlcTimerZeroHandler() {
             {
                 OUTPUT_VALUE(0xffu);
                 uint8_t tempLetter = isLetter(led_measurement_time);
-                if (tempLetter != 0xff) {
-                    OUTPUT_VALUE(tempLetter);
-                }
+                //if (tempLetter != 0xff) {
+                    //OUTPUT_VALUE(tempLetter);
+                //}
             }
 		}
 
@@ -222,9 +222,9 @@ void vlcTimerZeroHandler() {
             {
                 OUTPUT_VALUE(0xffu);
                 uint8_t tempLetter = isLetter(led_measurement_time);
-                if (tempLetter != 0xff) {
-                    OUTPUT_VALUE(tempLetter);
-                }
+                //if (tempLetter != 0xff) {
+                    //OUTPUT_VALUE(tempLetter);
+                //}
             }
 		}
 		led_measurement_time = 0;
