@@ -14,7 +14,7 @@
 
 #include "util.h"
 #include "alphabet.h"
-
+#include "vlc_decoder_data.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (5)
@@ -95,10 +95,32 @@ void disableVLC() {
 }
 
 
+/**
+* Takes in time measurement. Returns
+* letter index if valid, 0xff if not
+*/
+uint8_t isLetter(uint8_t time) {
+    
+    static messageDepth;
+    currentMessage<<=1;
+	//OUTPUT_VALUE(currentMessage);
+	if (time>timeThreshold)
+	{
+		currentMessage|=0x01;
+	}
+    
+    uint8_t returnByte;
+    returnByte = pgm_read_byte(&ALPHABET[messageDepth*currentMessage])
+}
+
+/**
+* Takes in a time measurement. Returns true if
+* this byte finishes the preamble.
+*/
 bool isPreamble(uint8_t time)
 {
-	//if (preambleLock)
-	//	return false;
+	if (preambleLock)
+		return false;
 
 	if (timeMin > time) {
 		timeMin = time;
@@ -115,7 +137,7 @@ bool isPreamble(uint8_t time)
 	//}
 	
 	currentMessage<<=1;
-	OUTPUT_VALUE(currentMessage);
+	//OUTPUT_VALUE(currentMessage);
 	if (time>timeThreshold)
 	{
 		currentMessage|=0x01;
