@@ -30,6 +30,7 @@ static uint8_t timeMin;
 static uint8_t timeMax;
 static uint8_t timeThreshold;
 static uint8_t currentMessage;
+static uint8_t positionCounter;
 /**
 * Measure light value from LED.
 */	
@@ -78,7 +79,9 @@ void enableVLC() {
 	TCNT0 = 0;
 	led_measurement_max=led_measurement_min = measureLED();
 	
-	preambleLock=0;
+    OUTPUT_VALUE(0X00);
+	preambleLock=false;
+    positionCounter=0;
 	timeMin = 0xff;
 	timeMax = 0x00;
 	timeThreshold = 0x80;
@@ -101,16 +104,33 @@ void disableVLC() {
 */
 uint8_t isLetter(uint8_t time) {
     
-    static messageDepth;
+    static uint8_t messageDepth;
+    
     currentMessage<<=1;
 	//OUTPUT_VALUE(currentMessage);
 	if (time>timeThreshold)
 	{
 		currentMessage|=0x01;
 	}
-    
-    uint8_t returnByte;
-    returnByte = pgm_read_byte(&ALPHABET[messageDepth*currentMessage])
+    uint8_t i;
+    messageDepth = 4;
+    currentMessage = 0x03;
+    uint8_t decoderIndex = 0;
+    for (i=0;i<messageDepth;i++)
+    {
+        uint8_t decoderResult;
+        if (currentMessage&(1<<i))
+            decoderIndex++;
+        decoderResult = pgm_read_byte(&VLC_DECODER_DATA[decoderIndex]);
+        if (decoderResult&0x80) {
+            messageDepth=0;
+            return decoderResult & 0x7F;
+        }
+        else
+            decoderIndex = decoderResult;
+    }
+    messageDepth++;
+    return 0xff;
 }
 
 /**
@@ -131,10 +151,7 @@ bool isPreamble(uint8_t time)
 		timeThreshold = FIND_MIDPOINT(timeMin,timeMax);
 	}
 	
-	//make sure your max and mins are consistent
-	//if (((timeMax-time)>TIME_MEASUREMENT_SENSITIVITY)||((time-timeMin)>TIME_MEASUREMENT_SENSITIVITY)) {
-	//	return false;
-	//}
+
 	
 	currentMessage<<=1;
 	//OUTPUT_VALUE(currentMessage);
@@ -177,10 +194,20 @@ void vlcTimerZeroHandler() {
 		// Handle rising edge
 		led_measurement_bit = 1;
 		
-			if (isPreamble(led_measurement_time));
-			{
-				//OUTPUT_VALUE(0XFF);
-			}
+        if (isPreamble(led_measurement_time));
+        {
+            if (positionCounter<3)
+                positionCounter++;
+            else
+            {
+                OUTPUT_VALUE(0xffu);
+                uint8_t tempLetter = isLetter(led_measurement_time);
+                if (tempLetter != 0xff) {
+                    OUTPUT_VALUE(tempLetter);
+                }
+            }
+		}
+
 		led_measurement_time = 0;
 	}
 	else if((led_measurement_bit == 1) &&
@@ -188,9 +215,18 @@ void vlcTimerZeroHandler() {
 		// Handle falling edge
 		led_measurement_bit = 0;
 		if (isPreamble(led_measurement_time));
-			{
-				//OUTPUT_VALUE(0xff);
-			}
+        {
+            if (positionCounter<3)
+                positionCounter++;
+            else
+            {
+                OUTPUT_VALUE(0xffu);
+                uint8_t tempLetter = isLetter(led_measurement_time);
+                if (tempLetter != 0xff) {
+                    OUTPUT_VALUE(tempLetter);
+                }
+            }
+		}
 		led_measurement_time = 0;
 	}
 	// If no edge has been detected, increment the time. By doing this in the else, it saves us

@@ -134,7 +134,7 @@ static int doAccelTest(void) {
 }
 
 static int doCountTest(void) {
-    uint8_t i;
+    uint8_t i =0;
     while(1)
     {
         i++;
