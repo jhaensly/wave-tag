@@ -108,17 +108,14 @@ static int doVLC(void) {
 
 static int doWave(void) {
 	//while button is pressed and held, stay in VLC mode
-	/*initDisplay();
-	outputText[0]=1;
-	outputText[1]=2;
-	outputText[2]=3;
+	initDisplay();
 	refreshFrameBuffer();
-	*/
+	
 	BUSY_WHILE(PIND&0x04);
 	
 	m_next_mode = MODE_VLC;
-	/*killDisplay();
-	*/
+	killDisplay();
+	
 	return 0;
 }
 
@@ -212,7 +209,7 @@ int main(void) {
  */
 ISR(TIMER0_COMPA_vect) {
 	if (m_current_mode==MODE_WAVE) {
-		//waveTimerZeroHandler();
+		waveTimerZeroHandler();
 	}
 	if (m_current_mode==MODE_VLC) {
 		vlcTimerZeroHandler();
@@ -228,7 +225,7 @@ ISR(TIMER0_COMPA_vect) {
 ISR (INT1_vect)
 {
 	if (m_current_mode==MODE_WAVE) {
-		//waveIntOneHandler();
+		waveIntOneHandler();
 	}
 }
 

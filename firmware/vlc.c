@@ -30,7 +30,11 @@ static uint8_t timeMin;
 static uint8_t timeMax;
 static uint8_t timeThreshold;
 static uint8_t currentMessage;
-static uint8_t positionCounter;
+//used in several places to keep track of how
+//many bits have been transmitted.
+static uint8_t positionCounter; 
+
+static uint8_t cursorLocation;
 
 static uint8_t messageDepth;
 /**
@@ -74,7 +78,7 @@ uint8_t measureLED() {
 */
 void enableVLC() {
 	OUTPUT_VALUE(0X00);
-
+	cursorLocation=0;
 	//Timer0 interrupt
 	preambleLock = false;
 	OCR0A = 50; //how high you count
@@ -99,6 +103,7 @@ void enableVLC() {
 */	
 void disableVLC() {
 	TIMSK0 = 0;
+	refreshFrameBuffer();
 }
 
 
@@ -214,6 +219,8 @@ void vlcTimerZeroHandler() {
 			else {
 				if (tempLetter != 0xff) {
 					OUTPUT_VALUE(tempLetter);
+					outputText[cursorLocation]=tempLetter;
+					cursorLocation++;
 				}
 			}
 		}
