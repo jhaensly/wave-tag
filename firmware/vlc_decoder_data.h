@@ -1,7 +1,7 @@
 /**
  * @file vlc_decoder_data.h
  *
- * @author This file was procedurally generated on 29 Jan 2014
+ * @author This file was procedurally generated on 30 Jan 2014
  *
  * The decoding scheme for the Huffman encoded data used for VLC. The value at
  * an index represents either the index in the array of its left child or, if
@@ -18,7 +18,7 @@
 
 enum {
     /// The number of elements in the matrix
-    VLC_DECODER_DATA_ELEMENTS = 72,
+    VLC_DECODER_DATA_ELEMENTS = 70,
 
     /// The value used to denote invalid symbols
     VLC_DECODER_DATA_INVALID  = 0xff,
