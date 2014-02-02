@@ -51,7 +51,7 @@ static void accelWriteReg(uint8_t reg, uint8_t val) {
 
 int accelConfigFreefall() {
     // Enable freefall detect on y; Event latch disable
-    accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x50u);
+    accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x10u);
 
     // Enable freefall detect
     accelWriteReg(ACCEL_REG_CTRL_4, 0x04u);
@@ -63,7 +63,7 @@ int accelConfigFreefall() {
     accelWriteReg(ACCEL_REG_CTRL_3, 0x00u);
 
     // Set threshold. Max = 0x7f, which equals 8 G
-    accelWriteReg(ACCEL_REG_FF_MT_THS, 0x0fu);
+    accelWriteReg(ACCEL_REG_FF_MT_THS, 0x05u);
 
 	//Set freefall debounce timeout
 	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X01);
