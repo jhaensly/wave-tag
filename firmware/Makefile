@@ -2,7 +2,7 @@ C_SRC   += main.c
 C_SRC   += accel.c
 C_SRC   += vlc_decoder_data.c
 C_SRC   += alphabet.c
-C_SRC    += vlc.c
+C_SRC   += vlc.c
 
 # The AVR device to compile for
 DEVICE      = attiny48
@@ -10,21 +10,26 @@ DEVICE      = attiny48
 # Target AVR clock rate in Hertz
 CLOCK       = 8000000
 
-# Options to avrdude which define the hardware you use for
-# uploading to the AVR and the interface where this hardware
-# is connected.
-PROGRAMMER  = -c avrispmkii -P usb -F -B 10
-
 # Parameters for avrdude to flash the fuses appropriately.
 FUSES       = -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
+
+# Options to avrdude which define the hardware you use for
+# uploading to the AVR and the interface where this hardware
+# is connected. This can be overridden in the file config.mk,
+# but will otherwise default to the AVRISP mkii.
+-include config.mk
+PROGRAMMER ?= -c avrispmkii -P usb
 
 SRC_PATH    = $(shell pwd)
 APP_NAME    = wave-tag
 OBJ_DIR     = $(SRC_PATH)/obj
 ELF_FILE    = $(OBJ_DIR)/$(APP_NAME).elf
 HEX_FILE    = $(OBJ_DIR)/$(APP_NAME).hex
+SYM_FILE    = $(OBJ_DIR)/$(APP_NAME).sym
 MAP_FILE    = $(OBJ_DIR)/$(APP_NAME).map
+SYM_FILE    = $(OBJ_DIR)/$(APP_NAME).sym
 OBJECTS     = $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
+Q          ?= @
 
 # Toolchain aliases
 TC_PRE  = avr-
@@ -39,26 +44,18 @@ SIZE    = $(TC_PRE)size
 
 include version.inc
 
-CFLAGS  = -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) $(DEFINES) \
-			-Wall -Werror -Wno-tautological-compare -Wno-empty-body \
-			-Wmissing-field-initializers -Wpointer-arith -Wuninitialized \
-			-Wstrict-overflow -Wundef -Wlogical-op -Wshadow -fshort-enums
+CPPFLAGS= -DF_CPU=$(CLOCK) $(DEFINES)
+CFLAGS  = -Os -mmcu=$(DEVICE) $(CPPFLAGS) \
+			-Wall -Werror -Wno-empty-body -Wmissing-field-initializers \
+			-Wpointer-arith -Wuninitialized -Wstrict-overflow -Wundef \
+			-Wlogical-op -Wshadow -fshort-enums
 LDFLAGS = -Wl,--gc-sections,-Map=$(MAP_FILE) 
 
-AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)
+AVRDUDE = avrdude $(PROGRAMMER) -F -B 10 -p $(DEVICE)
 COMPILE = $(CC) $(CFLAGS) $(LDFLAGS)
 
 .PHONY : all
-all: obj_dir $(APP_NAME)
-
-obj_dir:
-	mkdir -p $(OBJ_DIR)
-
-.PHONY : $(APP_NAME)
-$(APP_NAME): $(HEX_FILE)
-
-$(OBJ_DIR)/%.o: %.c
-	$(COMPILE) -c $< -o $@
+all: $(HEX_FILE) $(SYM_FILE)
 
 .PHONY : flash
 flash:	all
@@ -70,7 +67,7 @@ fuse:
 
 # Xcode uses the Makefile targets "", "clean" and "install"
 .PHONY : install
-install: flash fuse
+install: all flash fuse
 
 .PHONY : load
 load: all
@@ -80,24 +77,40 @@ load: all
 doc:
 	doxygen Doxyfile
 
+.PHONY : disasm
+disasm:	$(ELF_FILE)
+	$(OBJDUMP) -d $(ELF_FILE)
+
 .PHONY : clean
 clean:
 	rm -f $(OBJ_DIR)/*.o
+	rm -f $(OBJ_DIR)/*.d
 	rm -f $(OBJ_DIR)/*.elf
 	rm -f $(OBJ_DIR)/*.map
 	rm -f $(OBJ_DIR)/*.hex
+	rm -f $(OBJ_DIR)/*.sym
 	rm -rf $(OBJ_DIR)
 
-# file targets:
+$(OBJ_DIR)/%.o: %.c 
+	@echo "CC $(notdir $<)"
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+
+ifneq "$(MAKECMDGOALS)" "clean"
+-include $(OBJECTS:.o=.d)
+endif
+$(OBJ_DIR)/%.d: %.c
+	@mkdir -p $(dir $@)
+	$(Q)$(CC) $(CFLAGS) -MM -MT $(patsubst %.c, $(OBJ_DIR)/%.o,$<) $< -MF $@
+
 $(ELF_FILE): $(OBJECTS)
-	$(COMPILE) -o $(ELF_FILE) $(OBJECTS)
+	@mkdir -p $(dir $@)
+	$(Q)$(COMPILE) $^ -o $@
+	$(SIZE) -Bxt $@
 
 $(HEX_FILE): $(ELF_FILE)
-	rm -f $(HEX_FILE)
-	$(OBJCOPY) -j .text -j .data -O ihex $(ELF_FILE) $(HEX_FILE)
-# If you have an EEPROM section, you must also create a hex file for the
-# EEPROM and add it to the "flash" target.
+	$(Q)rm -f $@
+	$(Q)$(OBJCOPY) -j .text -j .data -O ihex $< $@
 
-# Targets for code debugging and analysis:
-disasm:	$(ELF_FILE)
-	$(OBJDUMP) -d $(ELF_FILE)
+$(SYM_FILE): $(ELF_FILE)
+	$(Q)$(NM) -n $< > $@

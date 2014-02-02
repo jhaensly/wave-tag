@@ -113,12 +113,12 @@ static int doWave(void) {
 	outputText[1]=2;
 	outputText[2]=3;
 	refreshFrameBuffer();
-	
+
 	BUSY_WHILE(PIND&0x04);
-	
+
 	m_next_mode = MODE_VLC;
 	killDisplay();
-	
+
 	return 0;
 }
 
@@ -134,7 +134,7 @@ static int doAccelTest(void) {
 }
 
 static int doCountTest(void) {
-    uint8_t i;
+    uint8_t i = 0;
     while(1)
     {
         i++;
@@ -161,9 +161,9 @@ int main(void) {
     m_current_mode = MODE_WAVE;
     m_next_mode = MODE_WAVE;
     while(1) {
-		
-		
-		
+
+
+
         int error;
 
         switch (m_current_mode)
@@ -191,7 +191,7 @@ int main(void) {
         case MODE_COUNT_TEST:
             error = doCountTest();
             break;
-                
+
         default:
             error = -1;
             break;
@@ -217,7 +217,7 @@ ISR(TIMER0_COMPA_vect) {
 	if (m_current_mode==MODE_VLC) {
 		vlcTimerZeroHandler();
 	}
-       
+
 }
 
 

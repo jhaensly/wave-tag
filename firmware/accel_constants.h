@@ -71,9 +71,9 @@ enum {
 	* actual time depends on ODR setting see table 49 on datasheet
 	*/
 	ACCEL_REG_FF_MT_COUNT = 0x18,
-	
-	
-	
+
+
+
 
     /**
      * Interrupt enable register (0 = disabled, 1 = enabled)
