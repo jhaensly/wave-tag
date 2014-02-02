@@ -18,20 +18,6 @@
 #define BUTTON_RELEASED()   (PIND & 4)
 #define BUTTON_PRESSED()    (!BUTTON_RELEASED())
 
-// Edge detection sensitivity
-#define LED_MEASUREMENT_SENSITIVITY (5)
-
-
-static volatile bool m_vlc_in_progress;
-volatile uint8_t led_measurement_min;
-volatile uint8_t led_measurement_max;
-volatile uint8_t led_measurement_thresh;
-volatile uint8_t led_measurement_time;
-volatile uint8_t led_measurement_bit;
-
-volatile uint8_t vlc_data[64];
-volatile uint8_t vlc_data_idx = 0;
-
 static volatile enum {
     APP_MODE_SLEEP,
     APP_MODE_WAITING,
@@ -39,6 +25,8 @@ static volatile enum {
     APP_MODE_WAVE,
     APP_MODE_ACCEL_TEST,
     APP_MODE_COUNT_TEST,
+
+    APP_MODE_COUNT // This must remain last
 } m_current_mode,
   m_next_mode;
 
@@ -104,8 +92,7 @@ static error_t doAccelTest(void) {
 
 static error_t doCountTest(void) {
     uint8_t i = 0;
-    while(1)
-    {
+    while(m_current_mode == m_next_mode) {
         i++;
         OUTPUT_VALUE(i);
         _delay_ms(10);
@@ -113,11 +100,24 @@ static error_t doCountTest(void) {
     return ERR_NONE;
 }
 
+// This array of app modes must be in the same order as the array of enums
+// defined above. Main uses the enum value as an index into this array.
+typedef error_t (*handle_app_mode_t)(void);
+static const handle_app_mode_t app_mode_handler[] = {
+    &doSleep,
+    &doWaiting,
+    &doVLC,
+    &doWave,
+    &doAccelTest,
+    &doCountTest
+};
+
+
 int main(void) {
     DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
-	OUTPUT_VALUE(0X00u);
+	OUTPUT_VALUE(0x00u);
 
     accelConfigFreefall();
     m_current_mode  = APP_MODE_WAVE;
@@ -126,38 +126,14 @@ int main(void) {
     while(1) {
         error_t error;
 
-        switch (m_current_mode)
-        {
-        case APP_MODE_SLEEP:
-            error = doSleep();
-            break;
-
-        case APP_MODE_WAITING:
-            error = doWaiting();
-            break;
-
-        case APP_MODE_VLC:
-            error = doVLC();
-            break;
-
-        case APP_MODE_WAVE:
-            error = doWave();
-            break;
-
-        case APP_MODE_ACCEL_TEST:
-            error = doAccelTest();
-            break;
-
-        case APP_MODE_COUNT_TEST:
-            error = doCountTest();
-            break;
-
-        default:
+        if (m_current_mode < APP_MODE_COUNT) {
+            error = app_mode_handler[m_current_mode]();
+        }
+        else {
             error = ERR_APP_INVALID_MODE;
-            break;
         }
 
-        if (error != 0) {
+        if (error != ERR_NONE) {
             error_state(error);
         }
 
@@ -166,18 +142,16 @@ int main(void) {
 }
 
 
-
 /**
  * Interrupt handler for timer.  In charge of displaying text.
  */
-ISR(TIMER0_COMPA_vect) {
+ISR (TIMER0_COMPA_vect) {
 	if (m_current_mode == APP_MODE_WAVE) {
 		waveTimerZeroHandler();
 	}
 	if (m_current_mode == APP_MODE_VLC) {
 		vlcTimerHandler();
 	}
-
 }
 
 
