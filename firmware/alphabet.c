@@ -213,7 +213,7 @@ void waveTimerZeroHandler() {
 	if ((waveTimer>blackoutDelay)||((messageCursor>0) &&(messageCursor<MESSAGE_LENGTH)))
 	{
 		//only display text going forward
-		if (!goingRight) {
+		/*if (!goingRight) {
 			accel_data_t val;
 			accelReadValue(ACCEL_Y, &val);
 			if (val>10)
@@ -222,7 +222,7 @@ void waveTimerZeroHandler() {
 				interruptCount=0;
 			}
 				
-		}
+		}*/
 		
 		//keep ticking until you reach the end of this column
 		if (columnTimer < columnTime) {
@@ -275,25 +275,20 @@ void waveIntOneHandler() {
 	//	ignoreShakes--;
 	//else
 	//{
-		//only concern yourself with high-low transitions
-		if (interruptCount==0)
-			interruptCount++;
-		else
-		{
-			if (goingRight)
-			{
-				//reset timers once per cycle
-				currentColumnNumber = 0;
-				messageCursor=0;
-				OUTPUT_VALUE(0x00);
-				refreshFrameBuffer();
-				
-				goingRight=false;
-				interruptCount=0;
-				columnTimer=0;
-				
-			}
-		}
+    accel_data_t val;
+    accelReadValue(ACCEL_Y, &val);
+    if (!(val&0X80))
+    {
+        //reset timers once per cycle
+        currentColumnNumber = 0;
+        messageCursor=0;
+        OUTPUT_VALUE(0x00);
+        refreshFrameBuffer();
+        
+        goingRight=false;
+        interruptCount=0;
+        columnTimer=0;
+    }
 		
 	//}
 	///@todo clear interrupt flag in case there were any spurious interrupts during this vector

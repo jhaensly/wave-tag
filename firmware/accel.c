@@ -63,10 +63,10 @@ int accelConfigFreefall() {
     accelWriteReg(ACCEL_REG_CTRL_3, 0x00u);
 
     // Set threshold. Max = 0x7f, which equals 8 G
-    accelWriteReg(ACCEL_REG_FF_MT_THS, 0x05u);
+    accelWriteReg(ACCEL_REG_FF_MT_THS, 0x13u);
 
 	//Set freefall debounce timeout
-	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X01);
+	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X00);
 	
     // Set ACTIVE bit to wake chip
     accelWriteReg(ACCEL_REG_CTRL_1, 0x01u);

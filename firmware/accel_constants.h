@@ -35,7 +35,7 @@ enum {
      * Freefall/Motion threshold register
      *
      * x___ ____ Debounce counter mode: 0 = Increments or decrements debounce, 1 = increments or clears
-     * -xxx xxxx Threashold
+     * -xxx xxxx Threshold
      */
     ACCEL_REG_FF_MT_THS = 0x17,
 
