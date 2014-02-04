@@ -99,7 +99,7 @@ static int doWaiting(void) {
 
 static int doVLC(void) {
     enableVLC();
-	_delay_us(100);
+	//_delay_us(100);
 	BUSY_UNTIL(PIND&0x04);
 	disableVLC();
 	m_next_mode = MODE_WAVE;
@@ -109,9 +109,6 @@ static int doVLC(void) {
 static int doWave(void) {
 	//while button is pressed and held, stay in VLC mode
 	initDisplay();
-	outputText[0]=1;
-	outputText[1]=2;
-	outputText[2]=3;
 	refreshFrameBuffer();
 
 	BUSY_WHILE(PIND&0x04);
@@ -231,6 +228,7 @@ ISR (INT1_vect)
 		waveIntOneHandler();
 	}
 }
+
 
 
 

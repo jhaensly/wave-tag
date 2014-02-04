@@ -19,13 +19,14 @@ volatile uint8_t outputText[MESSAGE_LENGTH]={};
 /**
  * Width of display output in pixels.
  */
-#define FRAME_BUFFER_LENGTH 50
+#define FRAME_BUFFER_LENGTH 10
 
 /**
  * Pixel framebuffer of current thing to display.
  */
 volatile uint8_t frameBuffer [FRAME_BUFFER_LENGTH];
 
+static uint8_t currentLetterLength;
 
 //ignore the first few pulses so you don't prematurely jump into display mode.
 static volatile uint8_t ignoreShakes = 2;
@@ -34,6 +35,9 @@ static volatile uint8_t ignoreShakes = 2;
  * Location of column "cursor" that is editing the array when adding columns.
 */
 static volatile uint8_t frameBufferCursor;
+
+//stores current letter being displayed
+static volatile uint8_t messageCursor;
 
 /**
  * Present duration of current vertical column.
@@ -64,7 +68,8 @@ static volatile uint32_t blackoutDelay;
 /**
  * Raw pixel data for A-Z, 0-9, and some symbols
  */
-static const uint8_t ALPHABET [242] PROGMEM = {0,0,0,0,0,0,252,254,51,51,254,252,255,255,219,219,255,102,60,126,231,195,195,102,255,255,195,231,126,60,255,255,219,219,195,255,255,27,27,3,60,126,231,195,211,243,114,255,255,24,24,255,255,195,195,255,255,195,195,48,195,195,195,127,63,255,255,24,124,230,192,255,255,192,192,192,255,255,6,12,6,255,255,255,255,6,28,48,255,255,60,126,195,195,126,60,255,255,51,51,30,12,60,126,195,195,127,188,255,255,51,51,126,236,110,207,201,243,114,3,3,255,255,3,3,127,255,192,192,255,127,63,127,192,192,127,63,255,255,96,48,96,255,255,195,126,24,24,126,195,3,6,252,252,6,3,195,227,243,207,199,195,196,198,255,255,192,192,194,227,243,223,206,66,203,203,255,118,31,31,24,24,255,255,95,219,219,251,115,126,255,203,251,122,227,243,27,15,7,118,255,201,201,255,118,14,95,219,219,126,60,126,255,211,203,255,126,223,223,6,7,211,219,15,14,40,40,254,40,254,40,40,192,192,102,102,38,102,64,64,102,38};
+
+static const uint8_t ALPHABET [210] PROGMEM = {0,0,0,0,0,0,252,254,51,51,254,252,255,255,219,219,255,102,60,126,231,195,195,102,255,255,195,231,126,60,255,255,219,219,195,255,255,27,27,3,60,126,231,195,211,243,114,255,255,24,24,255,255,195,195,255,255,195,195,48,195,195,195,127,63,255,255,24,124,230,192,255,255,192,192,192,255,255,6,12,6,255,255,255,255,6,28,48,255,255,60,126,195,195,126,60,255,255,51,51,30,12,60,126,195,195,127,188,255,255,51,51,126,236,110,207,201,243,114,3,3,255,255,3,3,127,255,192,192,255,127,63,127,192,192,127,63,255,255,96,48,96,255,255,195,126,24,24,126,195,3,6,252,252,6,3,195,227,243,207,199,195,196,198,255,255,192,192,194,227,243,223,206,66,203,203,255,118,31,31,24,24,255,255,95,219,219,251,115,126,255,203,251,122,227,243,27,15,7,118,255,201,201,255,118,14,95,219,219};//,126,60,126,255,211,203,255,126,223,223};//,6,7,211,219,15,14,40,40,254,40};//,254,40,40,192,192,102,102,38,102,64,64,102,38};
 
 /**
  * Width of each individual symbol
@@ -89,12 +94,12 @@ static bool goingRight;
 */
 static uint8_t interruptCount;
 
-	/**
+/**
  * Add letter to end of frame buffer.
  */
 static void addLetter(uint8_t letter)
 {
-	uint8_t currentLetterLength = pgm_read_byte(&SYMBOL_LENGTH[letter]);
+	currentLetterLength = pgm_read_byte(&SYMBOL_LENGTH[letter]);
 	uint8_t currentLetterPosition = pgm_read_byte(&SYMBOL_POSITION[letter]);
 	uint8_t j;
 	for (j=0;j<currentLetterLength;j++)
@@ -116,19 +121,20 @@ static void addLetter(uint8_t letter)
 void refreshFrameBuffer()
 {
 	
-	uint8_t i;
-	frameBufferCursor=1;
-	for(i=0;i<MESSAGE_LENGTH;i++)
-	{
+	//uint8_t i;
+	//for(i=0;i<MESSAGE_LENGTH;i++)
+	//{
+	if (messageCursor<MESSAGE_LENGTH) {
+		frameBufferCursor=0;
 		///@todo fix this for however we're storing messages
-		addLetter(outputText[i]);
+		addLetter(outputText[messageCursor]);
 	}
-	while (frameBufferCursor<SIZEOF_ARRAY(frameBuffer))
-	{
-		frameBuffer[frameBufferCursor]=0xffu;
-		frameBufferCursor++;
-	}
-	frameBufferCursor = 0;
+	//while (frameBufferCursor<SIZEOF_ARRAY(frameBuffer))
+	//{
+	//	frameBuffer[frameBufferCursor]=0xffu;
+	//	frameBufferCursor++;
+	//}
+	//frameBufferCursor = 0;
 }
 
 /**
@@ -204,19 +210,19 @@ void waveTimerZeroHandler() {
 	
 
 	//need to make sure you finish the message you started.
-	if ((waveTimer>blackoutDelay)||(currentColumnNumber>0))
+	if ((waveTimer>blackoutDelay)||((messageCursor>0) &&(messageCursor<MESSAGE_LENGTH)))
 	{
 		//only display text going forward
-		if (!goingRight) {
+		/*if (!goingRight) {
 			accel_data_t val;
 			accelReadValue(ACCEL_Y, &val);
-			if (val>20)
+			if (val>10)
 			{
 				goingRight=true;
 				interruptCount=0;
 			}
 				
-		}
+		}*/
 		
 		//keep ticking until you reach the end of this column
 		if (columnTimer < columnTime) {
@@ -224,11 +230,16 @@ void waveTimerZeroHandler() {
 		}
 		else {
 			columnTimer = 0;
-			//move to next row
-			if (currentColumnNumber < (SIZEOF_ARRAY(frameBuffer)-1))
+			//move to next row. +2 handles space between letters
+			if (currentColumnNumber < (currentLetterLength))
 			{
 				currentColumnNumber++;
 				printCol(currentColumnNumber);
+			}
+			else {
+				currentColumnNumber=0;
+				messageCursor++;
+				refreshFrameBuffer();
 			}
 		}
 	}
@@ -251,7 +262,8 @@ void waveIntOneHandler() {
 		
 	//divy up the amount of time per cycle by the number of rows you hope to display
 	//subtract the timeout to take care of the beginning, and the (mastercount>>4) to tighten up the end a bit.
-	columnTime = (nextWaveTime-(nextWaveTime>>4)-(blackoutDelay>>1))/(SIZEOF_ARRAY(frameBuffer));
+	//@TODO change 50 to some smarter value
+	columnTime = (nextWaveTime-(nextWaveTime>>4)-(blackoutDelay>>1))/(50);
 	waveTimer=0;
 	
 	//some arbitrary percentage of the total cycle is the timeout.  This allows
@@ -263,25 +275,22 @@ void waveIntOneHandler() {
 	//	ignoreShakes--;
 	//else
 	//{
-		//only concern yourself with high-low transitions
-		if (interruptCount==0)
-			interruptCount++;
-		else
-		{
-			if (goingRight)
-			{
-				//reset timers once per cycle
-				currentColumnNumber = 0;
-				printCol(currentColumnNumber);
-				goingRight=false;
-				interruptCount=0;
-				columnTimer=0;
-				
-			}
-		}
+    accel_data_t val;
+    accelReadValue(ACCEL_Y, &val);
+    if (!(val&0X80))
+    {
+        //reset timers once per cycle
+        currentColumnNumber = 0;
+        messageCursor=0;
+        OUTPUT_VALUE(0x00);
+        refreshFrameBuffer();
+        
+        goingRight=false;
+        interruptCount=0;
+        columnTimer=0;
+    }
 		
 	//}
-	
 	///@todo clear interrupt flag in case there were any spurious interrupts during this vector
 	//GIFR = (1<<PCIF0);
 
