@@ -210,7 +210,7 @@ void waveTimerZeroHandler() {
 	
 
 	//need to make sure you finish the message you started.
-	if ((waveTimer>blackoutDelay)||((messageCursor>0) &&(messageCursor<MESSAGE_LENGTH)))
+	if ((waveTimer>blackoutDelay))
 	{
 		//only display text going forward
 		/*if (!goingRight) {
@@ -255,7 +255,7 @@ void waveIntOneHandler() {
 	
 	
 	//calculate time twice per cycle.
-	nextWaveTime = waveTimer;
+
 	
 
 	
@@ -263,12 +263,11 @@ void waveIntOneHandler() {
 	//divy up the amount of time per cycle by the number of rows you hope to display
 	//subtract the timeout to take care of the beginning, and the (mastercount>>4) to tighten up the end a bit.
 	//@TODO change 50 to some smarter value
-	columnTime = (nextWaveTime-(nextWaveTime>>4)-(blackoutDelay>>1))/(50);
-	waveTimer=0;
+
 	
 	//some arbitrary percentage of the total cycle is the timeout.  This allows
 	//for the start of the cycle to be at the end of a wave, not in the middle.
-	blackoutDelay = (nextWaveTime>>1)+(nextWaveTime>>2);
+	
 	
 	
 	//if (ignoreShakes>0)
@@ -277,8 +276,13 @@ void waveIntOneHandler() {
 	//{
     accel_data_t val;
     accelReadValue(ACCEL_Y, &val);
-    if (!(val&0X80))
+    if (val>0)
     {
+        nextWaveTime = waveTimer;
+        blackoutDelay = (nextWaveTime>>2);
+        columnTime = ((nextWaveTime)-(blackoutDelay))/(100);
+        waveTimer=0;
+        
         //reset timers once per cycle
         currentColumnNumber = 0;
         messageCursor=0;
