@@ -66,13 +66,17 @@ static error_t doWaiting(void) {
 }
 
 static error_t doVLC(void) {
-    enableVLC();
+    error_t err = vlcEnable();
+
+    if (err != ERR_NONE) {
+        return err;
+    }
 
 	BUSY_UNTIL(BUTTON_RELEASED());
-	disableVLC();
+	err = vlcDisable();
 
 	m_next_mode = APP_MODE_WAVE;
-	return ERR_NONE;
+	return err;
 }
 
 static error_t doWave(void) {
@@ -171,7 +175,7 @@ ISR(TIMER0_COMPA_vect) {
 		waveTimerZeroHandler();
 	}
 	if (m_current_mode == APP_MODE_VLC) {
-		vlcTimerZeroHandler();
+		vlcTimerHandler();
 	}
 
 }
@@ -180,66 +184,9 @@ ISR(TIMER0_COMPA_vect) {
 /**
  * Interrupt handler for accelerometer interrupt
  */
-
 ISR (INT1_vect)
 {
 	if (m_current_mode == APP_MODE_WAVE) {
 		waveIntOneHandler();
 	}
 }
-
-
-
-
-
-/*
-ISR (INT1_vect) {
-   // _delay_ms(1);
-   // OUTPUT_VALUE(0x00);
-}*/
-
-/*
-ISR(TIMER0_COMPA_vect) {
-    if (m_vlc_in_progress) {
-        uint8_t led_measurement = measureLED();
-
-        // Maximum and minimum values are primarily a function of the transmitter's distance from
-        // the board. Since that is variable, find good values dynamically. At the start of a
-        // transmission, they should change frequenctly. Later, as things stabilize, we should
-        // jump to .
-        if (led_measurement > led_measurement_max) {
-            // Reset max threshold
-            led_measurement_max = led_measurement;
-            led_measurement_thresh = FIND_MIDPOINT(led_measurement_min, led_measurement_max);
-        }
-        else if (led_measurement < led_measurement_min)
-        {
-            // Reset min threshold
-            led_measurement_min = led_measurement;
-            led_measurement_thresh = FIND_MIDPOINT(led_measurement_min, led_measurement_max);
-        }
-        // At this point, we have established the dynamic range and set our threshold at the midpoint.
-        // The VLC protocol encodes information on the duration between edges, so look for edges.
-        else if ((led_measurement_bit == 0) &&
-                 (led_measurement > (led_measurement_thresh + LED_MEASUREMENT_SENSITIVITY))) {
-            // Handle rising edge
-            led_measurement_bit = 1;
-            OUTPUT_VALUE(led_measurement_time);
-            led_measurement_time = 0;
-        }
-
-        else if((led_measurement_bit == 1) &&
-                (led_measurement < (led_measurement_thresh - LED_MEASUREMENT_SENSITIVITY))) {
-            // Handle falling edge
-            led_measurement_bit = 0;
-            OUTPUT_VALUE(led_measurement_time);
-            led_measurement_time = 0;
-        }
-        // If no edge has been detected, increment the time. By doing this in the else, it saves us
-        // from a particularly noisy initial measurement.
-        else {
-            led_measurement_time++;
-        }
-    }
-}*/
-

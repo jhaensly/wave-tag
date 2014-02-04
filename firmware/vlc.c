@@ -12,9 +12,10 @@
 #include <avr/interrupt.h>
 #include <stdbool.h>
 
-#include "util.h"
-#include "alphabet.h"
+#include "vlc.h"
 #include "vlc_decoder_data.h"
+#include "alphabet.h"
+#include "util.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (3u)
@@ -25,22 +26,21 @@ static uint8_t led_measurement_max;
 static uint8_t led_measurement_thresh;
 static uint8_t led_measurement_time;
 static uint8_t led_measurement_bit;
-static bool preambleLock;
+static bool    preambleLock;
 static uint8_t timeMin;
 static uint8_t timeMax;
 static uint8_t timeThreshold;
 static uint8_t currentMessage;
+
 //used in several places to keep track of how
 //many bits have been transmitted.
-static uint8_t positionCounter; 
+static uint8_t positionCounter;
 
 static uint8_t cursorLocation;
 
 static uint8_t messageDepth;
-/**
-* Measure light value from LED.
-*/	
-uint8_t measureLED() {
+
+static uint8_t measureLED() {
 	PORTC = PORTC & 0xfcu; //kill both sides of the LED
 	DDRC = 0x03u;
 
@@ -71,12 +71,9 @@ uint8_t measureLED() {
 	ADMUX  = 0x00u;
 	ADCSRA = 0x00u;
 	return temp;
-}	
+}
 
-/**
-* Enable VLC detection
-*/
-void enableVLC() {
+error_t vlcEnable() {
 	OUTPUT_VALUE(0X00);
 	cursorLocation=0;
 	//Timer0 interrupt
@@ -95,36 +92,27 @@ void enableVLC() {
 	timeThreshold = 0x80;
 	currentMessage = 0x00;
 	sei();
-	
-	}
+    return ERR_NONE;
+}
 
-/**
-* Disables VLC detection
-*/	
-void disableVLC() {
+error_t vlcDisable() {
 	TIMSK0 = 0;
 	refreshFrameBuffer();
+    return ERR_NONE;
 }
 
 
-/**
-* Takes in time measurement. Returns
-* letter index if valid, 0xff if not
-*/
-uint8_t isLetter(uint8_t time) {
-    
-    
-    
+/* Takes in time measurement. Returns
+ * letter index if valid, 0xff if not */
+static uint8_t isLetter(uint8_t time) {
     currentMessage<<=1;
-	if (time>timeThreshold)
-	{
+	if (time>timeThreshold) {
 		currentMessage|=0x01;
 	}
     uint8_t i;
     uint8_t decoderIndex = 0;
     //counting on i to roll under
-    for (i=messageDepth;i<255;i--)
-    {
+    for (i=messageDepth;i<255;i--) {
         uint8_t decoderResult;
         if (currentMessage&(1<<i))
             decoderIndex++;
@@ -134,25 +122,27 @@ uint8_t isLetter(uint8_t time) {
             //OUTPUT_VALUE(currentMessage);
             return decoderResult & 0x7F;
         }
-        else
+        else {
             decoderIndex = decoderResult;
+        }
     }
     messageDepth++;
     return 0xff;
 }
 
-/**
-* Takes in a time measurement. Returns true if
-* this byte finishes the preamble.
-*/
-bool isPreamble(uint8_t time)
-{
-	if (preambleLock)
+/*
+ * Takes in a time measurement. Returns true if
+ * this byte finishes the preamble.
+ */
+static bool isPreamble(uint8_t time) {
+	if (preambleLock) {
 		return true;
+    }
+
 	positionCounter++;
 	if (timeMin > time) {
 		timeMin = time;
-		
+
 		timeThreshold = FIND_MIDPOINT(timeMin, timeMax);
 		return false;
 	}
@@ -161,13 +151,10 @@ bool isPreamble(uint8_t time)
 		timeThreshold = FIND_MIDPOINT(timeMin,timeMax);
 		return false;
 	}
-	
 
-	
 	currentMessage<<=1;
-	
-	if (time>timeThreshold)
-	{
+
+	if (time>timeThreshold) {
 		currentMessage|=0x01;
 	}
 	//OUTPUT_VALUE(currentMessage);
@@ -179,18 +166,14 @@ bool isPreamble(uint8_t time)
 	return false;
 }
 
-/**
-* Performs interrupt operations for VLC mode
-*/
-void vlcTimerZeroHandler() {
-	
+void vlcTimerHandler() {
 	uint8_t led_measurement = measureLED();
 
 	// Maximum and minimum values are primarily a function of the transmitter's distance from
 	// the board. Since that is variable, find good values dynamically. At the start of a
 	// transmission, they should change frequenctly. Later, as things stabilize, we should
 	// jump to .
-	
+
 	if (led_measurement > led_measurement_max) {
 		// Reset max threshold
 		led_measurement_max = led_measurement;
@@ -204,15 +187,15 @@ void vlcTimerZeroHandler() {
 	}
 	// At this point, we have established the dynamic range and set our threshold at the midpoint.
 	// The VLC protocol encodes information on the duration between edges, so look for edges.
-	
+
 	else if (((led_measurement_bit == 0) && (led_measurement > (led_measurement_thresh + LED_MEASUREMENT_SENSITIVITY)))
 	||((led_measurement_bit == 1) && (led_measurement < (led_measurement_thresh - LED_MEASUREMENT_SENSITIVITY)))) {
 		// Handle rising edge
 		led_measurement_bit^=1;
-		
+
         if (isPreamble(led_measurement_time))
         {
-        	
+
 			uint8_t tempLetter = isLetter(led_measurement_time);
 			if (positionCounter<3)
 				positionCounter++;
