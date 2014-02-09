@@ -60,7 +60,7 @@ static uint8_t measureLED() {
 	ADCSRA|=0b01000000;
 
 	while (ADCSRA & 0b01000000) {
-		ADCSRA |= (0b00010000);
+		//ADCSRA |= (0b00010000);
 	}
 
 	uint8_t temp = ADCH;
