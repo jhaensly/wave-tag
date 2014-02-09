@@ -191,58 +191,32 @@ void killDisplay() {
  */
 void waveTimerZeroHandler() {
 	
-	
-	
-	// Wait before reverting back to menu
-	if (waveTimer<displayRefreshTimeout)
-		waveTimer++;
-	/*else
-	{
-		//right before reverting to the menu, reset the shake ignore counter
-		if (waveTimer==displayRefreshTimeout)
-		{
-			ignoreShakes=1;
-			waveTimer++; //increment just so ignoreShakes doesn't get called again
-		}
-		
-		///@todo somehow implement this with whatever menu system we come up with
-	}*/
-	
+    // Wait before reverting back to menu
+    if ((waveTimer<displayRefreshTimeout))
+        waveTimer++;
+    
 
-	//need to make sure you finish the message you started.
-	if ((waveTimer>blackoutDelay))
-	{
-		//only display text going forward
-		/*if (!goingRight) {
-			accel_data_t val;
-			accelReadValue(ACCEL_Y, &val);
-			if (val>10)
-			{
-				goingRight=true;
-				interruptCount=0;
-			}
-				
-		}*/
-		
-		//keep ticking until you reach the end of this column
-		if (columnTimer < columnTime) {
-			columnTimer++;
-		}
-		else {
-			columnTimer = 0;
-			//move to next row. +2 handles space between letters
-			if (currentColumnNumber < (currentLetterLength))
-			{
-				currentColumnNumber++;
-				printCol(currentColumnNumber);
-			}
-			else {
-				currentColumnNumber=0;
-				messageCursor++;
-				refreshFrameBuffer();
-			}
-		}
-	}
+    if ((waveTimer>blackoutDelay)&&(messageCursor<MESSAGE_LENGTH))
+    {
+        //keep ticking until you reach the end of this column
+        if (columnTimer < columnTime) {
+            columnTimer++;
+        }
+        else {
+            columnTimer = 0;
+            //move to next row. +2 handles space between letters
+            if (currentColumnNumber < (currentLetterLength))
+            {
+                currentColumnNumber++;
+                printCol(currentColumnNumber);
+            }
+            else {
+                currentColumnNumber=0;
+                messageCursor++;
+                refreshFrameBuffer();
+            }
+        }
+    }
 }
 
 /**
@@ -254,33 +228,18 @@ void waveIntOneHandler() {
 	uint32_t nextWaveTime;
 	
 	
-	//calculate time twice per cycle.
 
 	
 
 	
-		
-	//divy up the amount of time per cycle by the number of rows you hope to display
-	//subtract the timeout to take care of the beginning, and the (mastercount>>4) to tighten up the end a bit.
-	//@TODO change 50 to some smarter value
-
 	
-	//some arbitrary percentage of the total cycle is the timeout.  This allows
-	//for the start of the cycle to be at the end of a wave, not in the middle.
-	
-	
-	
-	//if (ignoreShakes>0)
-	//	ignoreShakes--;
-	//else
-	//{
     accel_data_t val;
     accelReadValue(ACCEL_Y, &val);
     if (val>0)
     {
         nextWaveTime = waveTimer;
-        blackoutDelay = (nextWaveTime>>2);
-        columnTime = ((nextWaveTime)-(blackoutDelay))/(100);
+        blackoutDelay = (nextWaveTime>>2)+(nextWaveTime>>4);
+        columnTime = ((nextWaveTime)-(blackoutDelay))/(150);
         waveTimer=0;
         
         //reset timers once per cycle
