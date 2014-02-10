@@ -8,15 +8,19 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "util.h"
 #include "accel.h"
 #include "alphabet.h"
 #include "vlc.h"
 #include "module_id.h"
+#include "sleep.h"
 
 #define BUTTON_RELEASED()   (PIND & 4)
 #define BUTTON_PRESSED()    (!BUTTON_RELEASED())
+
+static volatile bool is_button_up;
 
 static volatile enum {
     APP_MODE_SLEEP,
@@ -45,8 +49,24 @@ void error_state(error_t err_code) {
 }
 
 
+static bool isButtonUp(void) {
+    return BUTTON_RELEASED();
+}
+
 static error_t doSleep(void) {
-    return ERR_APP_INVALID_MODE;
+    OUTPUT_VALUE(0);
+    sleep(SLEEP_PWR_DOWN, &isButtonUp);
+
+    //m_next_mode = BUTTON_RELEASED() ? APP_MODE_WAVE : APP_MODE_VLC;
+    m_next_mode = APP_MODE_WAVE;
+
+    for (int i=0; i<4; i++) {
+        OUTPUT_VALUE(0x1);
+        _delay_ms(5);
+        OUTPUT_VALUE(0);
+        _delay_ms(5);
+    }
+    return ERR_NONE;
 }
 
 static error_t doWaiting(void) {
@@ -67,15 +87,19 @@ static error_t doVLC(void) {
 	return err;
 }
 
+static bool isWaveActive(void) {
+    return is_wave_active && BUTTON_RELEASED();
+}
+
 static error_t doWave(void) {
 	//while button is pressed and held, stay in VLC mode
 	initDisplay();
 	refreshFrameBuffer();
 
-	BUSY_UNTIL(BUTTON_PRESSED());
+    sleep(SLEEP_IDLE, &isWaveActive);
 
 	killDisplay();
-	m_next_mode = APP_MODE_VLC;
+	m_next_mode = BUTTON_PRESSED() ? APP_MODE_VLC : APP_MODE_SLEEP;
 	return ERR_NONE;
 }
 
@@ -120,8 +144,14 @@ int main(void) {
 	OUTPUT_VALUE(0x00u);
 
     accelConfigFreefall();
-    m_current_mode  = APP_MODE_WAVE;
+    m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;
+
+    memset((uint8_t*)outputText, 1, sizeof(outputText));
+
+    // Button interrupt on any edge
+    EICRA |= _BV(ISC00);
+    EIMSK |= _BV(INT0);
 
     while(1) {
         error_t error;
@@ -163,4 +193,8 @@ ISR (INT1_vect)
 	if (m_current_mode == APP_MODE_WAVE) {
 		waveIntOneHandler();
 	}
+}
+
+ISR (INT0_vect) {
+    is_button_up = BUTTON_RELEASED();
 }

@@ -10,6 +10,7 @@
 #define ALPHABET_H_
 
 #include <avr/pgmspace.h>
+#include <stdbool.h>
 
 /**
  * Number of characters in output.
@@ -20,6 +21,10 @@
  * Time elapsed during inactivity before reverting back to menu state.
  */
 #define displayRefreshTimeout 5000
+
+#define DISPLAY_SLEEP_TIMEOUT 100000
+
+extern volatile bool is_wave_active;
 
 /**
  * Initialize display for showing text.
