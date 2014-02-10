@@ -2,8 +2,6 @@
  * @file wave.h
  *
  * @author Michael Ciuffo <ch0000f@gmail.com> 24 Jan 2014
- *
- * Font for Wavetag DVT1
  */
 
 #ifndef WAVE_H_

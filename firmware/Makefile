@@ -4,6 +4,7 @@ C_SRC   += vlc_decoder_data.c
 C_SRC   += wave.c
 C_SRC   += vlc.c
 C_SRC   += sleep.c
+C_SRC   += glyph.c
 
 # The AVR device to compile for
 DEVICE      = attiny48
