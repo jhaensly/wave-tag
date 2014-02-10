@@ -14,7 +14,7 @@
 
 #include "vlc.h"
 #include "vlc_decoder_data.h"
-#include "alphabet.h"
+#include "wave.h"
 #include "util.h"
 
 // Edge detection sensitivity

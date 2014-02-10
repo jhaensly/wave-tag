@@ -12,7 +12,7 @@
 
 #include "util.h"
 #include "accel.h"
-#include "alphabet.h"
+#include "wave.h"
 #include "vlc.h"
 #include "module_id.h"
 #include "sleep.h"

@@ -1,13 +1,13 @@
 /**
- * @file alphabet.h
+ * @file wave.h
  *
  * @author Michael Ciuffo <ch0000f@gmail.com> 24 Jan 2014
  *
  * Font for Wavetag DVT1
  */
 
-#ifndef ALPHABET_H_
-#define ALPHABET_H_
+#ifndef WAVE_H_
+#define WAVE_H_
 
 #include <avr/pgmspace.h>
 #include <stdbool.h>
@@ -29,7 +29,6 @@ extern volatile bool is_wave_active;
 /**
  * Initialize display for showing text.
  */
-
 extern void initDisplay();
 
 /**
@@ -58,4 +57,4 @@ extern volatile uint8_t outputText[MESSAGE_LENGTH];
 */
 void killDisplay();
 
-#endif // ALPHABET_H_
+#endif // WAVE_H_

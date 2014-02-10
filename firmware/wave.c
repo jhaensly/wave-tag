@@ -1,12 +1,12 @@
 /**
- * @file alphabet.c
+ * @file wave.c
  *
  * @author Michael Ciuffo <ch0000f@gmail.com> 24 Jan 2014
  *
  * Font for Wavetag DVT1
  */
 
-#include "alphabet.h"
+#include "wave.h"
 #include "accel.h"
 #include <avr/interrupt.h>
 #include "util.h"
