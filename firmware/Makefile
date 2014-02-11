@@ -6,6 +6,7 @@ C_SRC   += vlc.c
 C_SRC   += sleep.c
 C_SRC   += glyph.c
 C_SRC   += display.c
+C_SRC   += button.c
 
 # The AVR device to compile for
 DEVICE      := attiny88

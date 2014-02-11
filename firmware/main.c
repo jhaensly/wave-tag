@@ -17,11 +17,7 @@
 #include "module_id.h"
 #include "sleep.h"
 #include "display.h"
-
-#define BUTTON_RELEASED()   (PIND & 4)
-#define BUTTON_PRESSED()    (!BUTTON_RELEASED())
-
-static volatile bool is_button_up;
+#include "button.h"
 
 static volatile enum {
     APP_MODE_SLEEP,
@@ -148,6 +144,7 @@ int main(void) {
     PORTD = 0x00u;
 
     displayEnable();
+    buttonEnable();
     accelEnableFreefall();
     m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;
@@ -198,8 +195,4 @@ ISR (INT1_vect)
 	if (m_current_mode == APP_MODE_WAVE) {
 		waveIntOneHandler();
 	}
-}
-
-ISR (INT0_vect) {
-    is_button_up = BUTTON_RELEASED();
 }
