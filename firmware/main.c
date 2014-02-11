@@ -188,14 +188,3 @@ ISR (TIMER0_COMPA_vect) {
 		vlcTimerHandler();
 	}
 }
-
-
-/**
- * Interrupt handler for accelerometer interrupt
- */
-ISR (INT1_vect)
-{
-	if (m_current_mode == APP_MODE_WAVE) {
-		waveIntOneHandler();
-	}
-}

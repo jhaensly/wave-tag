@@ -138,7 +138,7 @@ static void printCol(uint8_t col)
 void initDisplay() {
 	///@todo bring this out into a timer .h file
 
-    accelEnableFreefall();
+    accelEnableFreefall(&waveIntOneHandler);
     displayEnable();
 
     is_wave_active = true;
@@ -154,11 +154,6 @@ void initDisplay() {
 
 	TCNT0 = 0;
 
-	//Interrupt on INT1. Rising edge.
-	EICRA |= 0x0cu;
-	//Enable INT1
-	EIMSK |= 0x02u;
-	sei();
 }
 
 /**
@@ -169,7 +164,6 @@ void killDisplay() {
 	//disable compare match interrupt.
 	TIMSK0 = 0x00;
 	//disable INT1
-	EIMSK &= ~0x02u;
 	TCNT0 = 0;
 
     accelDisable();

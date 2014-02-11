@@ -5,13 +5,15 @@
  */
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 #include "accel.h"
 #include "accel_constants.h"
 #include "util.h"
 
+static accel_cb_t m_freefall_event_cb;
+
 static void twi_start(uint8_t addr) {
-    PRR &= !PRTWI;
 
     TWCR = _BV(TWINT)|_BV(TWSTA)|_BV(TWEN);
     BUSY_UNTIL(TWCR & _BV(TWINT));
@@ -31,6 +33,8 @@ static void twi_send_byte(uint8_t data) {
 #define TWI_START_READ(a)  twi_start((a) | 1)
 
 static uint8_t accelReadReg(uint8_t reg) {
+    PRR &= ~PRTWI;
+
     TWI_START_WRITE(ACCEL_I2C_ADDR);
     twi_send_byte(reg);
 
@@ -40,25 +44,29 @@ static uint8_t accelReadReg(uint8_t reg) {
     BUSY_UNTIL(TWCR & _BV(TWINT));
 
     TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
+
     PRR |= PRTWI;
     return TWDR;
 }
 
 static void accelWriteReg(uint8_t reg, uint8_t val) {
+    PRR &= ~PRTWI;
+
     TWI_START_WRITE(ACCEL_I2C_ADDR);
     twi_send_byte(reg);
     twi_send_byte(val);
 
     TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
+
     PRR |= PRTWI;
 }
 
-error_t accelInit(void) {
-    PRR |= PRTWI;
-    return ERR_NONE;
-}
+error_t accelEnableFreefall(accel_cb_t freefall_event_cb) {
+    if (!freefall_event_cb) {
+        return ERR_ACCEL_INVALID_ARG;
+    }
+    m_freefall_event_cb = freefall_event_cb;
 
-error_t accelEnableFreefall(void) {
     // Enable freefall detect on y; Event latch disable
     accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x10u);
 
@@ -80,11 +88,19 @@ error_t accelEnableFreefall(void) {
     // Set ACTIVE bit to wake chip
     accelWriteReg(ACCEL_REG_CTRL_1, 0x01u);
 
+	//Interrupt on INT1. Rising edge.
+	EICRA |= _BV(ISC11) | _BV(ISC10);
+	EIMSK |= _BV(INT1);
+
     return ERR_NONE;
 }
 
 error_t accelDisable(void) {
+    // Put the accelerometer into standby mode
     accelWriteReg(ACCEL_SYSMOD, ACCEL_SYSMOD_STANDBY);
+
+    // Disable the interrupt
+	EIMSK &= ~_BV(INT1);
     return ERR_NONE;
 }
 
@@ -96,4 +112,11 @@ error_t accelReadValue(accel_axis_t axis, accel_data_t* data) {
     *data = accelReadReg(axis_reg[axis]);
 
     return ERR_NONE;
+}
+
+
+ISR (INT1_vect) {
+	if (m_freefall_event_cb) {
+        m_freefall_event_cb();
+	}
 }

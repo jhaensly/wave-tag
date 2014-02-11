@@ -27,16 +27,21 @@ typedef enum {
 typedef int8_t accel_data_t;
 
 /**
- * Initialize the accelerometer.
+ * A callback to handle an accelerometer event. Only the most recently set callback will be
+ * executed for a given event.
+ *
+ * @warning This will be called from an interrupt context, so design
+ * accoridngly.
  */
-extern error_t accelInit(void);
+typedef void (*accel_cb_t)(void);
+
 
 /**
  * Configure and enable the accelerometer's freefall detect mode.
  *
  * @return error_t
  */
-extern error_t accelEnableFreefall(void);
+extern error_t accelEnableFreefall(accel_cb_t freefall_event_cb);
 
 
 /**

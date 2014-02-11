@@ -15,6 +15,7 @@ typedef enum {
     MODULE_ID_INVALID       = 0x00, ///< Reserved
     MODULE_ID_APP           = 0x01, ///< WaveTag application
     MODULE_ID_TIMER         = 0x02, ///< Timer
+    MODULE_ID_ACCEL         = 0x03, ///< Accelerometer
 } module_id_t;
 
 typedef enum {
@@ -32,6 +33,9 @@ typedef enum {
     ERR_TIMER_NULL          = 0x20 | MODULE_ID_TIMER,
     /// Timer not running
     ERR_TIMER_INVALID       = 0x30 | MODULE_ID_TIMER,
+
+    /// Invalid argument
+    ERR_ACCEL_INVALID_ARG   = 0x00 | MODULE_ID_ACCEL,
 } error_t;
 
 
