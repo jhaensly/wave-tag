@@ -16,6 +16,7 @@
 #include "vlc.h"
 #include "module_id.h"
 #include "sleep.h"
+#include "display.h"
 
 #define BUTTON_RELEASED()   (PIND & 4)
 #define BUTTON_PRESSED()    (!BUTTON_RELEASED())
@@ -38,10 +39,10 @@ void error_state(error_t err_code) {
     static const uint8_t fw_ver = (APP_VERSION_MAJOR << 4) | APP_VERSION_MINOR;
 
     for (int i=0; i<10; i++) {
-        OUTPUT_VALUE(err_code);
+        displayByte(err_code);
         _delay_ms(100);
 
-        OUTPUT_VALUE(fw_ver);
+        displayByte(fw_ver);
         _delay_ms(100);
     }
 
@@ -54,16 +55,16 @@ static bool isButtonUp(void) {
 }
 
 static error_t doSleep(void) {
-    OUTPUT_VALUE(0);
+    displayByte(0);
     sleep(SLEEP_PWR_DOWN, &isButtonUp);
 
     //m_next_mode = BUTTON_RELEASED() ? APP_MODE_WAVE : APP_MODE_VLC;
     m_next_mode = APP_MODE_WAVE;
 
     for (int i=0; i<4; i++) {
-        OUTPUT_VALUE(0x1);
+        displayByte(0x1);
         _delay_ms(5);
-        OUTPUT_VALUE(0);
+        displayByte(0);
         _delay_ms(5);
     }
     return ERR_NONE;
@@ -107,7 +108,7 @@ static error_t doAccelTest(void) {
     while (m_current_mode == m_next_mode) {
         accel_data_t val;
         accelReadValue(ACCEL_Y, &val);
-        OUTPUT_VALUE(val);
+        displayByte(val);
         _delay_ms(10);
     }
 
@@ -118,7 +119,7 @@ static error_t doCountTest(void) {
     uint8_t i = 0;
     while(m_current_mode == m_next_mode) {
         i++;
-        OUTPUT_VALUE(i);
+        displayByte(i);
         _delay_ms(10);
     }
     return ERR_NONE;
@@ -143,11 +144,10 @@ int main(void) {
 
     accelInit();
 
-    DDRB  = 0xffu;    //LED PINS
     DDRD  = 0x00u;
     PORTD = 0x00u;
-	OUTPUT_VALUE(0x00u);
 
+    displayEnable();
     accelEnableFreefall();
     m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;

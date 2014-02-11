@@ -10,7 +10,7 @@
 #include "glyph.h"
 #include "accel.h"
 #include <avr/interrupt.h>
-#include "util.h"
+#include "display.h"
 
 /**
  * Matrix of output messages.
@@ -128,7 +128,7 @@ void refreshFrameBuffer()
  */
 static void printCol(uint8_t col)
 {
-	OUTPUT_VALUE(frameBuffer[col]);
+	displayByte(frameBuffer[col]);
 	return;
 }
 
@@ -231,7 +231,7 @@ void waveIntOneHandler() {
         //reset timers once per cycle
         currentColumnNumber = 0;
         messageCursor=0;
-        OUTPUT_VALUE(0x00);
+        displayByte(0x00);
         refreshFrameBuffer();
 
         goingRight=false;

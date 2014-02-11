@@ -16,6 +16,7 @@
 #include "vlc_decoder_data.h"
 #include "wave.h"
 #include "util.h"
+#include "display.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (3u)
@@ -75,7 +76,7 @@ static uint8_t measureLED() {
 }
 
 error_t vlcEnable() {
-	OUTPUT_VALUE(0X00);
+	displayByte(0X00);
     currentMessageLength=0;
 	cursorLocation=0;
 	//Timer0 interrupt
@@ -124,7 +125,7 @@ static uint8_t isLetter(uint8_t time) {
         decoderResult = pgm_read_byte(&VLC_DECODER_DATA[decoderIndex]);
         if (decoderResult&0x80) {
             messageDepth=0;
-            //OUTPUT_VALUE(currentMessage);
+            //displayByte(currentMessage);
             return decoderResult & 0x7F;
         }
         else {
@@ -162,7 +163,7 @@ static bool isPreamble(uint8_t time) {
 	if (time>timeThreshold) {
 		currentMessage|=0x01;
 	}
-	//OUTPUT_VALUE(currentMessage);
+	//displayByte(currentMessage);
 	if (((currentMessage&0b11111)==0b10100)&&(positionCounter>5)) {
 		preambleLock = true;
 		positionCounter=0;
@@ -206,7 +207,7 @@ void vlcTimerHandler() {
 				positionCounter++;
 			else {
 				if (tempLetter != 0xff) {
-					OUTPUT_VALUE(tempLetter);
+					displayByte(tempLetter);
 					outputText[cursorLocation]=tempLetter;
                     currentMessageLength++;
 					cursorLocation++;

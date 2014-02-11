@@ -5,13 +5,13 @@ C_SRC   += wave.c
 C_SRC   += vlc.c
 C_SRC   += sleep.c
 C_SRC   += glyph.c
+C_SRC   += display.c
 
 # The AVR device to compile for
 DEVICE      := attiny88
 MCU         := -mmcu=$(DEVICE)
 
 # Target AVR clock rate in Hertz
-#DEFINES     += -DF_CPU=1000000
 DEFINES     += -DF_CPU=8000000
 
 # Parameters for avrdude to flash the fuses appropriately.
