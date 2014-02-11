@@ -138,14 +138,13 @@ int main(void) {
     // We're not using SPI, so cut power to that peripheral to save power
     PRR |= PRSPI;
 
-    accelInit();
-
     DDRD  = 0x00u;
     PORTD = 0x00u;
 
     displayEnable();
     buttonEnable();
-    accelEnableFreefall();
+    accelDisable();
+
     m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;
 

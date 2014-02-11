@@ -138,6 +138,8 @@ static void printCol(uint8_t col)
 void initDisplay() {
 	///@todo bring this out into a timer .h file
 
+    accelEnableFreefall();
+
     is_wave_active = true;
 	//Timer0 interrupt
 	//How high you count
@@ -168,7 +170,8 @@ void killDisplay() {
 	//disable INT1
 	EIMSK &= ~0x02u;
 	TCNT0 = 0;
-	cli();
+
+    accelDisable();
 }
 
 

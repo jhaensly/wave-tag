@@ -3,7 +3,7 @@
  *
  * @author Jason W Haensly <jason.haensly@gmail.com> 25 Jan 2014
  *
- * Driver for the Freescale something or other
+ * Driver for the Freescale MMA8653FC 3 axis accelerometer.
  */
 
 #ifndef ACCEL_H_

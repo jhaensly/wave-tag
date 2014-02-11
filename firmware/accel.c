@@ -13,18 +13,18 @@
 static void twi_start(uint8_t addr) {
     PRR &= !PRTWI;
 
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWSTA)|_BV(TWEN);
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 
     TWDR = addr;
-    TWCR = (1<<TWINT)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWEN);
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 }
 
 static void twi_send_byte(uint8_t data) {
     TWDR = data;
-    TWCR = (1<<TWINT)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWEN);
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 }
 
 #define TWI_START_WRITE(a) twi_start(a)
@@ -36,10 +36,10 @@ static uint8_t accelReadReg(uint8_t reg) {
 
     TWI_START_READ(ACCEL_I2C_ADDR);
 
-    TWCR = (1<<TWINT)|(1<<TWEN)|(0<<TWEA);		//wait for data; send NACK
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWEN)|(0<<TWEA);		//wait for data; send NACK
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 
-    TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
+    TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
     PRR |= PRTWI;
     return TWDR;
 }
@@ -49,7 +49,7 @@ static void accelWriteReg(uint8_t reg, uint8_t val) {
     twi_send_byte(reg);
     twi_send_byte(val);
 
-    TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
+    TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
     PRR |= PRTWI;
 }
 
@@ -84,6 +84,7 @@ error_t accelEnableFreefall(void) {
 }
 
 error_t accelDisable(void) {
+    accelWriteReg(ACCEL_SYSMOD, ACCEL_SYSMOD_STANDBY);
     return ERR_NONE;
 }
 

@@ -3,7 +3,7 @@
  *
  * @author Jason W Haensly <jason.haensly@gmail.com> 21 Jan 2014
  *
- * Helpful constants for accessing the Freescale MMA8653 accelerometer
+ * Helpful constants for accessing the Freescale MMA8653FC accelerometer
  */
 
 #ifndef ACCEL_CONSTANTS_H_
@@ -65,15 +65,25 @@ enum {
      */
     ACCEL_REG_CTRL_3 = 0x2c,
 
+
 	/**
-	* Freefall debounce count.
-	* xxxx xxxx debounce time
-	* actual time depends on ODR setting see table 49 on datasheet
-	*/
+     * Freefall debounce count.
+     *
+     * Actual time depends on ODR setting see table 49 on datasheet
+     */
 	ACCEL_REG_FF_MT_COUNT = 0x18,
 
 
-
+    /**
+     * System mode register
+     *
+     * xxxx xx__ Unused
+     * ____ __xx System Mode
+     */
+    ACCEL_SYSMOD         = 0x0B,
+    ACCEL_SYSMOD_STANDBY = 0x00,
+    ACCEL_SYSMOD_WAKE    = 0x01,
+    ACCEL_SYSMOD_SLEEP   = 0x02,
 
     /**
      * Interrupt enable register (0 = disabled, 1 = enabled)
