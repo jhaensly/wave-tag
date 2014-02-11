@@ -76,7 +76,7 @@ static uint8_t measureLED() {
 }
 
 error_t vlcEnable() {
-	displayByte(0X00);
+    displayEnable();
     currentMessageLength=0;
 	cursorLocation=0;
 	//Timer0 interrupt
@@ -104,6 +104,7 @@ error_t vlcDisable() {
         outputText[i]=0;
 	TIMSK0 = 0;
 	refreshFrameBuffer();
+    displayDisable();
     return ERR_NONE;
 }
 

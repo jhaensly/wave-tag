@@ -139,6 +139,7 @@ void initDisplay() {
 	///@todo bring this out into a timer .h file
 
     accelEnableFreefall();
+    displayEnable();
 
     is_wave_active = true;
 	//Timer0 interrupt
@@ -172,6 +173,7 @@ void killDisplay() {
 	TCNT0 = 0;
 
     accelDisable();
+    displayDisable();
 }
 
 
