@@ -7,6 +7,7 @@ C_SRC   += sleep.c
 C_SRC   += glyph.c
 C_SRC   += display.c
 C_SRC   += button.c
+C_SRC   += timer.c
 
 # The AVR device to compile for
 DEVICE      := attiny88

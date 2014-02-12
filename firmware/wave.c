@@ -11,6 +11,7 @@
 #include "accel.h"
 #include <avr/interrupt.h>
 #include "display.h"
+#include "timer.h"
 
 /**
  * Matrix of output messages.
@@ -137,35 +138,20 @@ static void printCol(uint8_t col)
  */
 void initDisplay() {
 	///@todo bring this out into a timer .h file
+    waveTimer = 0;
+    is_wave_active = true;
 
     accelEnableFreefall(&waveIntOneHandler);
     displayEnable();
 
-    is_wave_active = true;
-	//Timer0 interrupt
-	//How high you count
-	OCR0A = 0x10u;
-
-	//compare match CTC, no multiplier
-	TCCR0A = 0x09u;
-
-	//enable compare match interrupt.
-	TIMSK0 = 0x02;
-
-	TCNT0 = 0;
-
+    timer0Start(&waveTimerZeroHandler, 0x10, true);
 }
 
 /**
 * Disable timers used for display.
 */
 void killDisplay() {
-
-	//disable compare match interrupt.
-	TIMSK0 = 0x00;
-	//disable INT1
-	TCNT0 = 0;
-
+    timer0Stop();
     accelDisable();
     displayDisable();
 }
@@ -179,7 +165,6 @@ void waveTimerZeroHandler() {
     if (++waveTimer >= DISPLAY_SLEEP_TIMEOUT) {
         is_wave_active = false;
     }
-
 
     if ((waveTimer>blackoutDelay)&&(messageCursor<MESSAGE_LENGTH))
     {
@@ -208,15 +193,7 @@ void waveTimerZeroHandler() {
  * Same shit but for external interrupt 1.
  */
 void waveIntOneHandler() {
-
-
 	uint32_t nextWaveTime;
-
-
-
-
-
-
 
     accel_data_t val;
     accelReadValue(ACCEL_Y, &val);

@@ -18,6 +18,7 @@
 #include "sleep.h"
 #include "display.h"
 #include "button.h"
+#include "timer.h"
 
 static volatile enum {
     APP_MODE_SLEEP,
@@ -26,6 +27,7 @@ static volatile enum {
     APP_MODE_WAVE,
     APP_MODE_ACCEL_TEST,
     APP_MODE_COUNT_TEST,
+    APP_MODE_TIMER_TEST,
 
     APP_MODE_COUNT // This must remain last
 } m_current_mode,
@@ -132,6 +134,31 @@ static error_t doCountTest(void) {
     return ERR_NONE;
 }
 
+static volatile uint8_t m_timer_counter;
+static void timerTestCB(void) {
+    m_timer_counter++;
+}
+
+static error_t doTimerTest(void) {
+    m_timer_counter = 0xf0;
+    error_t err;
+
+    if ((err = displayEnable()) != ERR_NONE) {
+        return err;
+    }
+
+    if ((err = timer0Start(&timerTestCB, 200, true)) != ERR_NONE) {
+        return err;
+    }
+
+    while (m_current_mode == m_next_mode) {
+        displayByte(m_timer_counter);
+    }
+
+    err = displayDisable();
+    return err;
+}
+
 // This array of app modes must be in the same order as the array of enums
 // defined above. Main uses the enum value as an index into this array.
 typedef error_t (*handle_app_mode_t)(void);
@@ -141,7 +168,8 @@ static const handle_app_mode_t app_mode_handler[] = {
     &doVLC,
     &doWave,
     &doAccelTest,
-    &doCountTest
+    &doCountTest,
+    &doTimerTest
 };
 
 
@@ -152,11 +180,14 @@ int main(void) {
     buttonEnable();
     accelDisable();
     displayDisable();
+    timerInit();
 
     m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;
 
     memset((uint8_t*)outputText, 1, sizeof(outputText));
+
+    sei();
 
     while(1) {
         error_t error;
@@ -174,17 +205,4 @@ int main(void) {
 
         m_current_mode = m_next_mode;
     }
-}
-
-
-/**
- * Interrupt handler for timer.  In charge of displaying text.
- */
-ISR (TIMER0_COMPA_vect) {
-	if (m_current_mode == APP_MODE_WAVE) {
-		waveTimerZeroHandler();
-	}
-	if (m_current_mode == APP_MODE_VLC) {
-		vlcTimerHandler();
-	}
 }
