@@ -81,6 +81,7 @@ static bool goingRight;
 */
 static uint8_t interruptCount;
 
+
 /**
  * Add letter to end of frame buffer.
  */
@@ -134,20 +135,6 @@ static void printCol(uint8_t col)
 }
 
 /**
- * Initialize timers and interrupts required for displaying text.
- */
-void initDisplay() {
-	///@todo bring this out into a timer .h file
-    waveTimer = 0;
-    is_wave_active = true;
-
-    accelEnableFreefall(&waveIntOneHandler);
-    displayEnable();
-
-    timer0Start(&waveTimerZeroHandler, 0x10, true);
-}
-
-/**
 * Disable timers used for display.
 */
 void killDisplay() {
@@ -156,36 +143,40 @@ void killDisplay() {
     displayDisable();
 }
 
-
-
-/**
- * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
- */
-void waveTimerZeroHandler() {
+static void waveInactive(void) {
     if (++waveTimer >= DISPLAY_SLEEP_TIMEOUT) {
         is_wave_active = false;
+        timer0Stop();
     }
+}
 
-    if ((waveTimer>blackoutDelay)&&(messageCursor<MESSAGE_LENGTH))
-    {
-        //keep ticking until you reach the end of this column
-        if (columnTimer < columnTime) {
-            columnTimer++;
+static void waveText(void) {
+    waveTimer++;
+    if (columnTimer < columnTime) {
+        columnTimer++;
+    }
+    else {
+        columnTimer = 0;
+        //move to next row. +2 handles space between letters
+        if (currentColumnNumber < (currentLetterLength)) {
+            currentColumnNumber++;
+            printCol(currentColumnNumber);
         }
         else {
-            columnTimer = 0;
-            //move to next row. +2 handles space between letters
-            if (currentColumnNumber < (currentLetterLength))
-            {
-                currentColumnNumber++;
-                printCol(currentColumnNumber);
-            }
-            else {
+            if (++messageCursor < MESSAGE_LENGTH) {
                 currentColumnNumber=0;
-                messageCursor++;
                 refreshFrameBuffer();
             }
+            else {
+                timer0Restart(&waveInactive);
+            }
         }
+    }
+}
+
+static void waveBlackout(void) {
+    if (++waveTimer > blackoutDelay) {
+        timer0Restart(&waveText);
     }
 }
 
@@ -213,11 +204,29 @@ void waveIntOneHandler() {
         goingRight=false;
         interruptCount=0;
         columnTimer=0;
+
+        timer0Restart(&waveBlackout);
     }
 
 	//}
 	///@todo clear interrupt flag in case there were any spurious interrupts during this vector
 	//GIFR = (1<<PCIF0);
 
+}
+
+/**
+ * Initialize timers and interrupts required for displaying text.
+ */
+void initDisplay() {
+	///@todo bring this out into a timer .h file
+    waveTimer = 0;
+    is_wave_active = true;
+
+    displayEnable();
+
+    // Order here matters. If accelerometer interrupt fires before the timer is
+    // initalized, the wave state machine could get out of sync.
+    timer0Start(&waveInactive, 50, true);
+    accelEnableFreefall(&waveIntOneHandler);
 }
 

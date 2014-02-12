@@ -29,7 +29,6 @@ error_t timerInit(void) {
     //   Reset back to zero
 
     TCCR0A = _BV(CTC0);
-    // TCCR0B = 0; // Tick = F_CPU / 1, or approx. 1 usec
     // TIMSK0 = 0; // Default
 
 #if 0 // For some reason, the following two lines cause LED 4 to stay on
@@ -91,18 +90,26 @@ error_t timer0Stop(void) {
     return ERR_NONE;
 }
 
-#if 0
-error_t timer0Restart(void) {
+error_t timer0Restart(handle_timer_expired_t cb) {
     if (PRR & _BV(PRTIM0)) {
         return ERR_TIMER_STOPPED;
+    }
+    if (!cb) {
+        return ERR_TIMER_INVALID_PARAM;
     }
 
     // Disable the interrupt to guard against possible race conditions.
     TIMSK0 = 0;
 
+    // Reset the callback
+    m_timer0_cb = cb;
+
     // CPU writes to the counter register take precidence over all other
     // accesses, so this should be safe to do without stopping the clock.
     TCNT0 = 0;
+
+    // Clear any interrupt flags that may have been raised.
+    TIFR0 |= _BV(OCF0A);
 
     // Reenable the interrupt.
     TIMSK0 = _BV(OCIE0A);
@@ -110,6 +117,7 @@ error_t timer0Restart(void) {
     return ERR_NONE;
 }
 
+#if 0
 error_t timer1Start(handle_timer_expired_t cb,
                     uint16_t msec,
                     bool recurring) {

@@ -54,9 +54,12 @@ extern error_t timer0Stop(void);
 /**
  * Restart a timer.
  *
+ * @param[in]  cb The callback to execute when the timer expires. The can be the
+ * same callback as was set initially.
+ *
  * @return error_t
  */
-extern error_t timer0Restart(void);
+extern error_t timer0Restart(handle_timer_expired_t cb);
 
 #if 0
 /**
