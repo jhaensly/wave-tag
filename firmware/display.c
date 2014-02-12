@@ -8,8 +8,7 @@
 #include "display.h"
 
 error_t displayEnable(void) {
-    // Configure as output low
-    PORTB = 0;
+    PORTB = 0xff;
     DDRB  = 0xff;
     return ERR_NONE;
 }
