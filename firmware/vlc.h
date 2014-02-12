@@ -26,11 +26,11 @@ extern error_t vlcDisable(void);
  * Measure light value.
  */
 extern uint8_t vlcTakeMeasurement(void);
-#endif
 
 /**
  * Performs interrupt operations for VLC mode
  */
 extern void vlcTimerHandler(void);
+#endif
 
 #endif

@@ -17,6 +17,7 @@
 #include "wave.h"
 #include "util.h"
 #include "display.h"
+#include "timer.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (3u)
@@ -75,34 +76,13 @@ static uint8_t measureLED() {
 	return temp;
 }
 
-error_t vlcEnable() {
-    displayEnable();
-    currentMessageLength=0;
-	cursorLocation=0;
-	//Timer0 interrupt
-	preambleLock = false;
-	OCR0A = 50; //how high you count
-	TCCR0A = 0x0A; //compare match CTC, no multiplier
-	TIMSK0 = 0x02; //enable compare match interrupt.
-	TCNT0 = 0;
-	led_measurement_min = measureLED();
-	led_measurement_max=led_measurement_min;
-	led_measurement_thresh = FIND_MIDPOINT(led_measurement_min, led_measurement_max);
-    messageDepth = 0;
-    positionCounter=0;
-	timeMin = 0xff;
-	timeMax = 0x00;
-	timeThreshold = 0x80;
-	currentMessage = 0x00;
-	sei();
-    return ERR_NONE;
-}
-
 error_t vlcDisable() {
-    uint8_t i;
-    for (i=currentMessageLength;i<MESSAGE_LENGTH;i++)
+    timer0Stop();
+
+    for (int i=currentMessageLength;i<MESSAGE_LENGTH;i++) {
         outputText[i]=0;
-	TIMSK0 = 0;
+    }
+
 	refreshFrameBuffer();
     displayDisable();
     return ERR_NONE;
@@ -173,7 +153,10 @@ static bool isPreamble(uint8_t time) {
 	return false;
 }
 
-void vlcTimerHandler() {
+static void vlcTimerHandler() {
+    displayByte(0xff);
+    return;
+
 	uint8_t led_measurement = measureLED();
 
 	// Maximum and minimum values are primarily a function of the transmitter's distance from
@@ -226,3 +209,21 @@ void vlcTimerHandler() {
 	}
 }
 
+error_t vlcEnable() {
+    displayEnable();
+    currentMessageLength=0;
+	cursorLocation=0;
+	preambleLock = false;
+	led_measurement_min = measureLED();
+	led_measurement_max=led_measurement_min;
+	led_measurement_thresh = FIND_MIDPOINT(led_measurement_min, led_measurement_max);
+    messageDepth = 0;
+    positionCounter=0;
+	timeMin = 0xff;
+	timeMax = 0x00;
+	timeThreshold = 0x80;
+	currentMessage = 0x00;
+
+    timer0Start(&vlcTimerHandler, 50, true);
+    return ERR_NONE;
+}
