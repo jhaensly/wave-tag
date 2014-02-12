@@ -5,51 +5,68 @@
  */
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 
 #include "accel.h"
 #include "accel_constants.h"
 #include "util.h"
 
+static accel_cb_t m_freefall_event_cb;
+
 static void twi_start(uint8_t addr) {
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+
+    TWCR = _BV(TWINT)|_BV(TWSTA)|_BV(TWEN);
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 
     TWDR = addr;
-    TWCR = (1<<TWINT)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWEN);
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 }
 
 static void twi_send_byte(uint8_t data) {
     TWDR = data;
-    TWCR = (1<<TWINT)|(1<<TWEN);
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWEN);
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 }
 
 #define TWI_START_WRITE(a) twi_start(a)
 #define TWI_START_READ(a)  twi_start((a) | 1)
 
 static uint8_t accelReadReg(uint8_t reg) {
+    PRR &= ~PRTWI;
+
     TWI_START_WRITE(ACCEL_I2C_ADDR);
     twi_send_byte(reg);
 
     TWI_START_READ(ACCEL_I2C_ADDR);
 
-    TWCR = (1<<TWINT)|(1<<TWEN)|(0<<TWEA);		//wait for data; send NACK
-    BUSY_UNTIL(TWCR & (1<<TWINT));
+    TWCR = _BV(TWINT)|_BV(TWEN)|(0<<TWEA);		//wait for data; send NACK
+    BUSY_UNTIL(TWCR & _BV(TWINT));
 
-    TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
+    TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
+
+    PRR |= PRTWI;
     return TWDR;
 }
 
 static void accelWriteReg(uint8_t reg, uint8_t val) {
+    PRR &= ~PRTWI;
+
     TWI_START_WRITE(ACCEL_I2C_ADDR);
     twi_send_byte(reg);
     twi_send_byte(val);
 
-    TWCR = (1<<TWSTO)|(1<<TWEN)|(1<<TWINT);		//send stop
+    TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
+
+    PRR |= PRTWI;
 }
 
-int accelConfigFreefall() {
+error_t accelEnableFreefall(accel_cb_t freefall_event_cb) {
+    if (!freefall_event_cb) {
+        return ERR_ACCEL_INVALID_ARG;
+    }
+    m_freefall_event_cb = freefall_event_cb;
+
     // Enable freefall detect on y; Event latch disable
     accelWriteReg(ACCEL_REG_FF_MT_CFG, 0x10u);
 
@@ -67,19 +84,39 @@ int accelConfigFreefall() {
 
 	//Set freefall debounce timeout
 	accelWriteReg(ACCEL_REG_FF_MT_COUNT, 0X00);
-	
+
     // Set ACTIVE bit to wake chip
     accelWriteReg(ACCEL_REG_CTRL_1, 0x01u);
 
-    return 0;
+	//Interrupt on INT1. Rising edge.
+	EICRA |= _BV(ISC11) | _BV(ISC10);
+	EIMSK |= _BV(INT1);
+
+    return ERR_NONE;
 }
 
-int accelReadValue(accel_axis_t axis, accel_data_t* data) {
+error_t accelDisable(void) {
+    // Put the accelerometer into standby mode
+    accelWriteReg(ACCEL_SYSMOD, ACCEL_SYSMOD_STANDBY);
+
+    // Disable the interrupt
+	EIMSK &= ~_BV(INT1);
+    return ERR_NONE;
+}
+
+error_t accelReadValue(accel_axis_t axis, accel_data_t* data) {
     static const uint8_t axis_reg[] = {
         ACCEL_OUT_X_MSB,
         ACCEL_OUT_Y_MSB,
         ACCEL_OUT_Z_MSB };
     *data = accelReadReg(axis_reg[axis]);
 
-    return 0;
+    return ERR_NONE;
+}
+
+
+ISR (INT1_vect) {
+	if (m_freefall_event_cb) {
+        m_freefall_event_cb();
+	}
 }

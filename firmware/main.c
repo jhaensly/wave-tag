@@ -8,15 +8,17 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "util.h"
 #include "accel.h"
-#include "alphabet.h"
+#include "wave.h"
 #include "vlc.h"
 #include "module_id.h"
-
-#define BUTTON_RELEASED()   (PIND & 4)
-#define BUTTON_PRESSED()    (!BUTTON_RELEASED())
+#include "sleep.h"
+#include "display.h"
+#include "button.h"
+#include "timer.h"
 
 static volatile enum {
     APP_MODE_SLEEP,
@@ -25,6 +27,7 @@ static volatile enum {
     APP_MODE_WAVE,
     APP_MODE_ACCEL_TEST,
     APP_MODE_COUNT_TEST,
+    APP_MODE_TIMER_TEST,
 
     APP_MODE_COUNT // This must remain last
 } m_current_mode,
@@ -33,20 +36,40 @@ static volatile enum {
 void error_state(error_t err_code) {
     static const uint8_t fw_ver = (APP_VERSION_MAJOR << 4) | APP_VERSION_MINOR;
 
+    displayEnable();
     for (int i=0; i<10; i++) {
-        OUTPUT_VALUE(err_code);
+        displayByte(err_code);
         _delay_ms(100);
 
-        OUTPUT_VALUE(fw_ver);
+        displayByte(fw_ver);
         _delay_ms(100);
     }
+    displayDisable();
 
     // TODO: Reset device
 }
 
 
+static bool isButtonUp(void) {
+    return BUTTON_RELEASED();
+}
+
 static error_t doSleep(void) {
-    return ERR_APP_INVALID_MODE;
+    sleep(SLEEP_PWR_DOWN, &isButtonUp);
+
+    //m_next_mode = BUTTON_RELEASED() ? APP_MODE_WAVE : APP_MODE_VLC;
+    m_next_mode = APP_MODE_WAVE;
+
+    displayEnable();
+    for (int i=0; i<4; i++) {
+        displayByte(0x1);
+        _delay_ms(5);
+        displayByte(0);
+        _delay_ms(5);
+    }
+
+    displayDisable();
+    return ERR_NONE;
 }
 
 static error_t doWaiting(void) {
@@ -67,37 +90,73 @@ static error_t doVLC(void) {
 	return err;
 }
 
+static bool isWaveActive(void) {
+    return is_wave_active && BUTTON_RELEASED();
+}
+
 static error_t doWave(void) {
 	//while button is pressed and held, stay in VLC mode
 	initDisplay();
 	refreshFrameBuffer();
 
-	BUSY_UNTIL(BUTTON_PRESSED());
+    sleep(SLEEP_IDLE, &isWaveActive);
 
 	killDisplay();
-	m_next_mode = APP_MODE_VLC;
+	m_next_mode = BUTTON_PRESSED() ? APP_MODE_VLC : APP_MODE_SLEEP;
 	return ERR_NONE;
 }
 
 static error_t doAccelTest(void) {
+    displayEnable();
+
     while (m_current_mode == m_next_mode) {
         accel_data_t val;
         accelReadValue(ACCEL_Y, &val);
-        OUTPUT_VALUE(val);
+        displayByte(val);
         _delay_ms(10);
     }
 
+    displayDisable();
     return ERR_NONE;
 }
 
 static error_t doCountTest(void) {
     uint8_t i = 0;
+    displayEnable();
+
     while(m_current_mode == m_next_mode) {
         i++;
-        OUTPUT_VALUE(i);
+        displayByte(i);
         _delay_ms(10);
     }
+
+    displayDisable();
     return ERR_NONE;
+}
+
+static volatile uint8_t m_timer_counter;
+static void timerTestCB(void) {
+    m_timer_counter++;
+}
+
+static error_t doTimerTest(void) {
+    m_timer_counter = 0xf0;
+    error_t err;
+
+    if ((err = displayEnable()) != ERR_NONE) {
+        return err;
+    }
+
+    if ((err = timer0Start(&timerTestCB, 200, true)) != ERR_NONE) {
+        return err;
+    }
+
+    while (m_current_mode == m_next_mode) {
+        displayByte(m_timer_counter);
+    }
+
+    err = displayDisable();
+    return err;
 }
 
 // This array of app modes must be in the same order as the array of enums
@@ -109,19 +168,26 @@ static const handle_app_mode_t app_mode_handler[] = {
     &doVLC,
     &doWave,
     &doAccelTest,
-    &doCountTest
+    &doCountTest,
+    &doTimerTest
 };
 
 
 int main(void) {
-    DDRB  = 0xffu;    //LED PINS
-    DDRD  = 0x00u;
-    PORTD = 0x00u;
-	OUTPUT_VALUE(0x00u);
+    // We're not using SPI, so cut power to that peripheral to save power
+    PRR |= PRSPI;
 
-    accelConfigFreefall();
-    m_current_mode  = APP_MODE_WAVE;
+    buttonEnable();
+    accelDisable();
+    displayDisable();
+    timerInit();
+
+    m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;
+
+    memset((uint8_t*)outputText, 1, sizeof(outputText));
+
+    sei();
 
     while(1) {
         error_t error;
@@ -139,28 +205,4 @@ int main(void) {
 
         m_current_mode = m_next_mode;
     }
-}
-
-
-/**
- * Interrupt handler for timer.  In charge of displaying text.
- */
-ISR (TIMER0_COMPA_vect) {
-	if (m_current_mode == APP_MODE_WAVE) {
-		waveTimerZeroHandler();
-	}
-	if (m_current_mode == APP_MODE_VLC) {
-		vlcTimerHandler();
-	}
-}
-
-
-/**
- * Interrupt handler for accelerometer interrupt
- */
-ISR (INT1_vect)
-{
-	if (m_current_mode == APP_MODE_WAVE) {
-		waveIntOneHandler();
-	}
 }

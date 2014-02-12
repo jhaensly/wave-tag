@@ -1,15 +1,14 @@
 /**
- * @file alphabet.h
+ * @file wave.h
  *
  * @author Michael Ciuffo <ch0000f@gmail.com> 24 Jan 2014
- *
- * Font for Wavetag DVT1
  */
 
-#ifndef ALPHABET_H_
-#define ALPHABET_H_
+#ifndef WAVE_H_
+#define WAVE_H_
 
 #include <avr/pgmspace.h>
+#include <stdbool.h>
 
 /**
  * Number of characters in output.
@@ -21,10 +20,13 @@
  */
 #define displayRefreshTimeout 5000
 
+#define DISPLAY_SLEEP_TIMEOUT 100000
+
+extern volatile bool is_wave_active;
+
 /**
  * Initialize display for showing text.
  */
-
 extern void initDisplay();
 
 /**
@@ -36,12 +38,12 @@ extern void refreshFrameBuffer();
 /**
  * Do stuff in timer0 ISR here because AVRdude says you can't do it like a normal person.
  */
-extern void waveTimerZeroHandler();
+//extern void waveTimerZeroHandler();
 
 /**
  * Same shit but for external interrupt 1.
  */
-extern void waveIntOneHandler();
+//extern void waveIntOneHandler();
 
 /**
  * Matrix of output messages.
@@ -53,4 +55,4 @@ extern volatile uint8_t outputText[MESSAGE_LENGTH];
 */
 void killDisplay();
 
-#endif // ALPHABET_H_
+#endif // WAVE_H_

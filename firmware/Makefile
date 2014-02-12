@@ -1,35 +1,56 @@
-C_SRC   += main.c
+C_SRC   := main.c
 C_SRC   += accel.c
 C_SRC   += vlc_decoder_data.c
-C_SRC   += alphabet.c
+C_SRC   += wave.c
 C_SRC   += vlc.c
+C_SRC   += sleep.c
+C_SRC   += glyph.c
+C_SRC   += display.c
+C_SRC   += button.c
+C_SRC   += timer.c
 
 # The AVR device to compile for
-DEVICE      = attiny48
+DEVICE      := attiny88
+MCU         := -mmcu=$(DEVICE)
 
 # Target AVR clock rate in Hertz
-CLOCK       = 8000000
+DEFINES     += -DF_CPU=8000000
 
 # Parameters for avrdude to flash the fuses appropriately.
-FUSES       = -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
+# For the ATTiny48, clear to enable:
+#   Fuse high byte
+#   x___ ____ RSTDSBL:  Disable external reset (0b1: reset enabled)
+#   _x__ ____ DWEN:     Enable debugWIRE (0b1: debug disabled)
+#   __x_ ____ SPIEN:    Enable SPI programming (0b0: SPI enabled)
+#   ___x ____ WDTON:    Watchdog always on (0b1: disabled)
+#   ____ x___ EESAVE:   Preserve EEPROM across chip erase (0b1: not preserved)
+#   ____ _xxx BODLEVEL: Brown-out detector trigger level (0b111: BOD disabled)
+#
+#   Fuse low byte
+#   x___ ____ CKDIV8:   Divide clock by 8 (0b0: sys clock div 8)
+#   _x__ ____ CKOUT:    Output sys clock on the CLKO pin (0b1: disabled) 
+#   __xx ____ SUT:      Select start up time (0b10: slowly rising power)
+#   ____ xx__           Unused
+#   ____ __xx CKSEL:    Select clock source (0b10: 8MHz internal osc)
+FUSES       := -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
 
 # Options to avrdude which define the hardware you use for
 # uploading to the AVR and the interface where this hardware
 # is connected. This can be overridden in the file config.mk,
 # but will otherwise default to the AVRISP mkii.
 -include config.mk
-PROGRAMMER ?= -c avrispmkii -P usb
+PROGRAMMER  ?= -c avrispmkii -P usb
 
-SRC_PATH    = $(shell pwd)
-APP_NAME    = wave-tag
-OBJ_DIR     = $(SRC_PATH)/obj
-ELF_FILE    = $(OBJ_DIR)/$(APP_NAME).elf
-HEX_FILE    = $(OBJ_DIR)/$(APP_NAME).hex
-SYM_FILE    = $(OBJ_DIR)/$(APP_NAME).sym
-MAP_FILE    = $(OBJ_DIR)/$(APP_NAME).map
-SYM_FILE    = $(OBJ_DIR)/$(APP_NAME).sym
-OBJECTS     = $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
-Q          ?= @
+SRC_PATH    := ./
+APP_NAME    := wave-tag
+OBJ_DIR     := $(SRC_PATH)/obj
+ELF_FILE    := $(OBJ_DIR)/$(APP_NAME).elf
+HEX_FILE    := $(OBJ_DIR)/$(APP_NAME).hex
+SYM_FILE    := $(OBJ_DIR)/$(APP_NAME).sym
+MAP_FILE    := $(OBJ_DIR)/$(APP_NAME).map
+SYM_FILE    := $(OBJ_DIR)/$(APP_NAME).sym
+OBJECTS     := $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
+Q           ?= @
 
 # Toolchain aliases
 TC_PRE  = avr-
@@ -44,15 +65,14 @@ SIZE    = $(TC_PRE)size
 
 include version.inc
 
-CPPFLAGS= -DF_CPU=$(CLOCK) $(DEFINES)
-CFLAGS  = -Os -std=c99 -mmcu=$(DEVICE) $(CPPFLAGS) \
+CPPFLAGS= $(MCU) $(DEFINES)
+CFLAGS  = -Os -std=gnu99 \
 			-Wall -Werror -Wno-empty-body -Wmissing-field-initializers \
 			-Wpointer-arith -Wuninitialized -Wstrict-overflow -Wundef \
 			-Wlogical-op -Wshadow -fshort-enums
-LDFLAGS = -Wl,--gc-sections,-Map=$(MAP_FILE) 
+LDFLAGS = $(MCU) -Wl,--gc-sections,-Map=$(MAP_FILE) 
 
 AVRDUDE = avrdude $(PROGRAMMER) -F -B 10 -p $(DEVICE)
-COMPILE = $(CC) $(CFLAGS) $(LDFLAGS)
 
 .PHONY : all
 all: $(HEX_FILE) $(SYM_FILE)
@@ -94,18 +114,21 @@ clean:
 $(OBJ_DIR)/%.o: %.c 
 	@echo "CC $(notdir $<)"
 	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+	$(Q)$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 ifneq "$(MAKECMDGOALS)" "clean"
 -include $(OBJECTS:.o=.d)
 endif
 $(OBJ_DIR)/%.d: %.c
 	@mkdir -p $(dir $@)
-	$(Q)$(CC) $(CFLAGS) -MM -MT $(patsubst %.c, $(OBJ_DIR)/%.o,$<) $< -MF $@
+	@set -e; rm -f $@; \
+    $(CC) -MM -MT $(patsubst %.c,$(OBJ_DIR)/%.o,$<) $(CPPFLAGS) $< > $@.$$$$; \
+    sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+    rm -f $@.$$$$
 
 $(ELF_FILE): $(OBJECTS)
 	@mkdir -p $(dir $@)
-	$(Q)$(COMPILE) $^ -o $@
+	$(Q)$(CC) $^ $(LDFLAGS) -o $@
 	$(SIZE) -Bxt $@
 
 $(HEX_FILE): $(ELF_FILE)
