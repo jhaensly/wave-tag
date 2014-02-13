@@ -16,7 +16,7 @@
  *
  * @warning This will be called from an ISR, so design accordingly.
  */
-typedef void (*handle_timer_expired_t)(void);
+typedef void (*timer_cb_t)(void);
 
 
 /**
@@ -35,7 +35,7 @@ extern error_t timerInit(void);
  * @param[in]  recurring True if the timer should be reinserted immediately.
  * @return     error_t
  */
-extern error_t timer0Start(handle_timer_expired_t cb,
+extern error_t timer0Start(timer_cb_t cb,
                            uint8_t usec,
                            bool recurring);
 
@@ -59,7 +59,7 @@ extern error_t timer0Stop(void);
  *
  * @return error_t
  */
-extern error_t timer0Restart(handle_timer_expired_t cb);
+extern error_t timer0Restart(timer_cb_t cb);
 
 #if 0
 /**
@@ -70,7 +70,7 @@ extern error_t timer0Restart(handle_timer_expired_t cb);
  * @param[in]  recurring True if the timer should be restarted immediately.
  * @return     error_t
  */
-extern error_t timer1Start(handle_timer_expired_t cb,
+extern error_t timer1Start(timer_cb_t cb,
                            uint16_t msec,
                            bool recurring);
 

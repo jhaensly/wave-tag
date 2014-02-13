@@ -17,7 +17,9 @@
 #include "wave.h"
 #include "util.h"
 #include "display.h"
-#include "timer.h"
+#include "adc.h"
+#include "sleep.h"
+#include "button.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (3u)
@@ -42,51 +44,6 @@ static uint8_t positionCounter;
 static uint8_t cursorLocation;
 
 static uint8_t messageDepth;
-
-static uint8_t measureLED() {
-	PORTC = PORTC & 0xfcu; //kill both sides of the LED
-	DDRC = 0x03u;
-
-	//configure ADC
-	ADMUX  = 0x61u; //left adjust, avcc ref, ADC1
-	ADCSRA = 0x80u; //enable ADC, divide clock by 2
-
-	//raise the cathode
-	PORTC |= 0x01u;
-	_delay_us(100);
-
-	//take the LED anode out of the equation.
-	DDRC = 0x01u;
-	_delay_us(10);
-
-	//START CONVERSION
-	ADCSRA|=0b01000000;
-
-	while (ADCSRA & 0b01000000) {
-		//ADCSRA |= (0b00010000);
-	}
-
-	uint8_t temp = ADCH;
-
-	ADCSRA = 0x00u;  //disable ADC
-	PORTC &= 0xf8u;
-	DDRC   = 0x03u;  //return to normal
-	ADMUX  = 0x00u;
-	ADCSRA = 0x00u;
-	return temp;
-}
-
-error_t vlcDisable() {
-    timer0Stop();
-
-    for (int i=currentMessageLength;i<MESSAGE_LENGTH;i++) {
-        outputText[i]=0;
-    }
-
-	refreshFrameBuffer();
-    displayDisable();
-    return ERR_NONE;
-}
 
 
 /* Takes in time measurement. Returns
@@ -115,6 +72,10 @@ static uint8_t isLetter(uint8_t time) {
     }
     messageDepth++;
     return 0xff;
+}
+
+static bool vlcActive(void) {
+    return BUTTON_PRESSED();
 }
 
 /*
@@ -153,11 +114,25 @@ static bool isPreamble(uint8_t time) {
 	return false;
 }
 
-static void vlcTimerHandler() {
-    displayByte(0xff);
-    return;
+static void vlcAdcCb(uint8_t led_measurement) {
+    static uint8_t toggle;
 
-	uint8_t led_measurement = measureLED();
+    toggle ^= 1;
+    if (toggle) {
+        displayByte(led_measurement);
+
+        // Let the LED discharge
+        PORTC  &= 0xf8;
+        DDRC    = 0x03;
+    }
+    else {
+        PORTC |= 0x01;
+        DDRC   = 0x01;
+
+        // Discard this measurment
+        return;
+    }
+    return;
 
 	// Maximum and minimum values are primarily a function of the transmitter's distance from
 	// the board. Since that is variable, find good values dynamically. At the start of a
@@ -185,8 +160,7 @@ static void vlcTimerHandler() {
 
         if (isPreamble(led_measurement_time))
         {
-
-			uint8_t tempLetter = isLetter(led_measurement_time);
+		uint8_t tempLetter = isLetter(led_measurement_time);
 			if (positionCounter<3)
 				positionCounter++;
 			else {
@@ -209,13 +183,15 @@ static void vlcTimerHandler() {
 	}
 }
 
-error_t vlcEnable() {
+error_t vlcReceive() {
+    error_t err = ERR_NONE;
+
     displayEnable();
     currentMessageLength=0;
 	cursorLocation=0;
 	preambleLock = false;
-	led_measurement_min = measureLED();
-	led_measurement_max=led_measurement_min;
+	led_measurement_min = UINT8_MAX;
+	led_measurement_max = 0;
 	led_measurement_thresh = FIND_MIDPOINT(led_measurement_min, led_measurement_max);
     messageDepth = 0;
     positionCounter=0;
@@ -224,6 +200,34 @@ error_t vlcEnable() {
 	timeThreshold = 0x80;
 	currentMessage = 0x00;
 
-    timer0Start(&vlcTimerHandler, 50, true);
-    return ERR_NONE;
+	PORTC = PORTC & 0xfcu; //kill both sides of the LED
+	DDRC = 0x03u;
+
+	//raise the cathode
+	PORTC |= 0x01u;
+	_delay_us(100);
+
+	//take the LED anode out of the equation.
+	DDRC = 0x01u;
+	_delay_us(10);
+
+    err = adcEnable(ADC_CHAN_1, &vlcAdcCb);
+
+    if (err == ERR_NONE) {
+        sleep(SLEEP_MODE_ADC, &vlcActive);
+    }
+
+    adcDisable();
+
+    for (int i=currentMessageLength;i<MESSAGE_LENGTH;i++) {
+        outputText[i]=0;
+    }
+
+    PORTC  &= 0xf8;
+    DDRC    = 0x03;
+
+	refreshFrameBuffer();
+    displayDisable();
+
+    return err;
 }

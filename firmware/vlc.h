@@ -12,25 +12,10 @@
 #include "module_id.h"
 
 /**
- * Enable VLC detection
+ * Receive and decode a VLC message
+ *
+ * @return error_t
  */
-extern error_t vlcEnable(void);
-
-/**
- * Disables VLC detection
- */
-extern error_t vlcDisable(void);
-
-#if 0
-/**
- * Measure light value.
- */
-extern uint8_t vlcTakeMeasurement(void);
-
-/**
- * Performs interrupt operations for VLC mode
- */
-extern void vlcTimerHandler(void);
-#endif
+extern error_t vlcReceive(void);
 
 #endif

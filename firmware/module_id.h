@@ -16,6 +16,7 @@ typedef enum {
     MODULE_ID_APP           = 0x01, ///< WaveTag application
     MODULE_ID_TIMER         = 0x02, ///< Timer
     MODULE_ID_ACCEL         = 0x03, ///< Accelerometer
+    MODULE_ID_ADC           = 0x04, ///< ADC
 } module_id_t;
 
 typedef enum {
@@ -34,6 +35,13 @@ typedef enum {
 
     /// Invalid argument
     ERR_ACCEL_INVALID_ARG   = 0x00 | MODULE_ID_ACCEL,
+
+    // Invalid argument
+    ERR_ADC_INVALID_ARG     = 0x00 | MODULE_ID_ADC,
+    /// ADC measurement in progress
+    ERR_ADC_BUSY            = 0x01 | MODULE_ID_ADC,
+    /// ADC not enabled
+    ERR_ADC_STOPPED         = 0x02 | MODULE_ID_ADC,
 } error_t;
 
 

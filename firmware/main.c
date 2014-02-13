@@ -19,6 +19,7 @@
 #include "display.h"
 #include "button.h"
 #include "timer.h"
+#include "adc.h"
 
 static volatile enum {
     APP_MODE_SLEEP,
@@ -77,14 +78,7 @@ static error_t doWaiting(void) {
 }
 
 static error_t doVLC(void) {
-    error_t err = vlcEnable();
-
-    if (err != ERR_NONE) {
-        return err;
-    }
-
-	BUSY_UNTIL(BUTTON_RELEASED());
-	err = vlcDisable();
+    error_t err = vlcReceive();
 
 	m_next_mode = APP_MODE_WAVE;
 	return err;
@@ -174,13 +168,16 @@ static const handle_app_mode_t app_mode_handler[] = {
 
 
 int main(void) {
-    // We're not using SPI, so cut power to that peripheral to save power
-    PRR |= PRSPI;
+    // We're not using SPI or analog comparitor, so disable them to save power.
+    PRR  |= _BV(PRSPI);
+    ACSR |= _BV(ACD);
 
     buttonEnable();
     accelDisable();
     displayDisable();
+
     timerInit();
+    adcInit();
 
     m_current_mode  = APP_MODE_SLEEP;
     m_next_mode     = APP_MODE_WAVE;

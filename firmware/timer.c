@@ -14,8 +14,8 @@
 static bool     m_timer0_recurring;
 //static bool     m_timer1_recurring;
 
-static handle_timer_expired_t m_timer0_cb;
-//static handle_timer_expired_t m_timer1_cb;
+static timer_cb_t m_timer0_cb;
+//static timer_cb_t m_timer1_cb;
 
 error_t timerInit(void) {
     // The reset state has the timers enabled, so there should be no need to
@@ -43,7 +43,7 @@ error_t timerInit(void) {
     return ERR_NONE;
 }
 
-error_t timer0Start(handle_timer_expired_t cb,
+error_t timer0Start(timer_cb_t cb,
                     uint8_t usec,
                     bool recurring) {
     if (!cb || (usec == 0)) {
@@ -90,7 +90,7 @@ error_t timer0Stop(void) {
     return ERR_NONE;
 }
 
-error_t timer0Restart(handle_timer_expired_t cb) {
+error_t timer0Restart(timer_cb_t cb) {
     if (PRR & _BV(PRTIM0)) {
         return ERR_TIMER_STOPPED;
     }
@@ -118,7 +118,7 @@ error_t timer0Restart(handle_timer_expired_t cb) {
 }
 
 #if 0
-error_t timer1Start(handle_timer_expired_t cb,
+error_t timer1Start(timer_cb_t cb,
                     uint16_t msec,
                     bool recurring) {
     if (!cb || (msec == 0)) {

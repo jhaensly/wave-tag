@@ -14,7 +14,6 @@
 static accel_cb_t m_freefall_event_cb;
 
 static void twi_start(uint8_t addr) {
-
     TWCR = _BV(TWINT)|_BV(TWSTA)|_BV(TWEN);
     BUSY_UNTIL(TWCR & _BV(TWINT));
 
@@ -33,7 +32,7 @@ static void twi_send_byte(uint8_t data) {
 #define TWI_START_READ(a)  twi_start((a) | 1)
 
 static uint8_t accelReadReg(uint8_t reg) {
-    PRR &= ~PRTWI;
+    PRR &= ~_BV(PRTWI);
 
     TWI_START_WRITE(ACCEL_I2C_ADDR);
     twi_send_byte(reg);
@@ -45,12 +44,12 @@ static uint8_t accelReadReg(uint8_t reg) {
 
     TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
 
-    PRR |= PRTWI;
+    PRR |= _BV(PRTWI);
     return TWDR;
 }
 
 static void accelWriteReg(uint8_t reg, uint8_t val) {
-    PRR &= ~PRTWI;
+    PRR &= ~_BV(PRTWI);
 
     TWI_START_WRITE(ACCEL_I2C_ADDR);
     twi_send_byte(reg);
@@ -58,7 +57,7 @@ static void accelWriteReg(uint8_t reg, uint8_t val) {
 
     TWCR = _BV(TWSTO)|_BV(TWEN)|_BV(TWINT);		//send stop
 
-    PRR |= PRTWI;
+    PRR |= _BV(PRTWI);
 }
 
 error_t accelEnableFreefall(accel_cb_t freefall_event_cb) {
