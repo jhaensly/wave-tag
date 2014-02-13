@@ -168,22 +168,27 @@ class HuffmanTree:
         return arr
 
 if __name__ == '__main__':
-    with open('config.json', 'r') as f:
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    with open(config_file, 'r') as f:
         config = json.load(f)
-        tweets_file   = config['tweets_path'] +\
-                        config['tweets_name'] +\
-                        config['tweets_ext']
-        char_file     = config['char_path'] +\
-                        config['char_name'] +\
-                        config['char_ext']
-        encoder_file  = config['encoder_path'] +\
-                        config['encoder_name'] 
+        tweets_file   = os.path.join(\
+                        config['tweets_path'],\
+                        config['tweets_name'],\
+                        config['tweets_ext'])
+        char_file     = os.path.join(\
+                        config['char_path'],
+                        config['char_name'],
+                        config['char_ext'])
+        encoder_file  = os.path.join(\
+                        config['encoder_path'],\
+                        config['encoder_name']) 
         decoder_name  = config['decoder_name']
-        decoder_file  = config['decoder_path'] +\
-                        decoder_name
-        twitter_cred  = config['twitter_credentials_path'] +\
-                        config['twitter_credentials_name'] +\
-                        config['twitter_credentials_ext']
+        decoder_file  = os.path.join(\
+                        config['decoder_path'],\
+                        decoder_name)
+        twitter_cred  = os.path.join(config['twitter_credentials_path'],\
+                        config['twitter_credentials_name'],\
+                        config['twitter_credentials_ext'])
 
         refresh_tweets = config['refresh_tweets']
 

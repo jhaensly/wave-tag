@@ -79,15 +79,16 @@ header_description = \
 
 
 if __name__ == '__main__':
-    with open('config.json', 'rb') as f:
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    with open(config_file, 'rb') as f:
         config = json.load(f)
         glyph_name  = config['glyph_name']
         glyph_path  = config['glyph_path']
             
     header_name = glyph_name + '.h'
     header_grd  = glyph_name.upper() + '_H_'
-    DeleteFile(glyph_path + header_name)
-    with open(glyph_path + header_name, 'wb') as f:
+    DeleteFile(os.path.join(glyph_path,header_name))
+    with open(os.path.join(glyph_path, header_name), 'wb') as f:
         WriteHeader(f, header_name, header_description)
         f.write('#ifndef %s\n' % header_grd) 
         f.write('#define %s\n\n' % header_grd) 
@@ -112,8 +113,8 @@ if __name__ == '__main__':
         starts.append(starts[-1] + widths[-1])
 
     source_name = glyph_name + '.c'
-    DeleteFile(glyph_path + source_name)
-    with open(glyph_path + source_name, 'wb') as f:
+    DeleteFile(os.path.join(glyph_path, source_name))
+    with open(os.path.join(glyph_path, source_name), 'wb') as f:
         WriteHeader(f, source_name)
         f.write('#include "%s"\n\n' % header_name)
 
