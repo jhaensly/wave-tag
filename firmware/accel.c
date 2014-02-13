@@ -96,7 +96,7 @@ error_t accelEnableFreefall(accel_cb_t freefall_event_cb) {
 
 error_t accelDisable(void) {
     // Put the accelerometer into standby mode
-    accelWriteReg(ACCEL_SYSMOD, ACCEL_SYSMOD_STANDBY);
+    accelWriteReg(ACCEL_REG_CTRL_1, 0x00);
 
     // Disable the interrupt
 	EIMSK &= ~_BV(INT1);
