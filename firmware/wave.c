@@ -99,8 +99,7 @@ static void addLetter(uint8_t letter)
 	//Add gaps between letters
 	frameBuffer[frameBufferCursor]=0x00u;
 	frameBufferCursor++;
-	frameBuffer[frameBufferCursor]=0x00u;
-	frameBufferCursor++;
+
 }
 
 /**
@@ -158,9 +157,9 @@ static void waveText(void) {
     else {
         columnTimer = 0;
         //move to next row. +2 handles space between letters
-        if (currentColumnNumber < (currentLetterLength)) {
-            currentColumnNumber++;
+        if (currentColumnNumber < (currentLetterLength+1)) {
             printCol(currentColumnNumber);
+            currentColumnNumber++;
         }
         else {
             if (++messageCursor < MESSAGE_LENGTH) {
