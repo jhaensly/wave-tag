@@ -33,7 +33,9 @@ typedef void (*adc_cb_t)(uint8_t);
 
 extern error_t adcInit(void);
 
-extern error_t adcEnable(adc_channel_t channel, adc_cb_t cb);
+extern error_t adcIntEnable(adc_channel_t channel, adc_cb_t cb);
+
+extern error_t adcEnable(adc_channel_t channel);
 
 extern error_t adcDisable(void);
 

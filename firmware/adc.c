@@ -28,7 +28,16 @@ error_t adcInit(void) {
     return ERR_NONE;
 }
 
-error_t adcEnable(adc_channel_t channel, adc_cb_t cb) {
+error_t adcEnable(adc_channel_t channel)
+{
+    //configure ADC
+    PRR &= ~_BV(PRADC);
+	ADMUX  = 0x60u | channel; //left adjust, avcc ref
+	ADCSRA = 0x80u; //enable ADC, divide clock by 2
+    return ERR_NONE;
+}
+
+error_t adcIntEnable(adc_channel_t channel, adc_cb_t cb) {
     if (!cb) {
         return ERR_ADC_INVALID_ARG;
     }

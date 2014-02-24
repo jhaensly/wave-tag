@@ -86,10 +86,6 @@ uint8_t measureLED() {
 	PORTC = PORTC & 0xfcu; //kill both sides of the LED
 	DDRC = 0x03u;
     
-	//configure ADC
-	ADMUX  = 0x61u; //left adjust, avcc ref, ADC1
-	ADCSRA = 0x80u; //enable ADC, divide clock by 2
-    
 	//raise the cathode
 	PORTC |= 0x01u;
 	_delay_us(100);
@@ -106,11 +102,10 @@ uint8_t measureLED() {
     
 	uint8_t temp = ADCH;
     
-	ADCSRA = 0x00u;  //disable ADC
+	
 	PORTC &= 0xf8u;
 	DDRC   = 0x03u;  //return to normal
-	ADMUX  = 0x00u;
-	ADCSRA = 0x00u;
+
 	return temp;
 }
 
@@ -223,13 +218,7 @@ error_t vlcReceive() {
 	timeThreshold = 0x80;
 	currentMessage = 0x00;
     
-    //@ciuffo enable ADC
-    PRR &= ~_BV(PRADC);
-    
-    
-	
-    //@Ciuffo switching from ADC to normal timer
-    //err = adcEnable(ADC_CHAN_1, &vlcAdcCb);
+    adcEnable(ADC_CHAN_1);
     err = timer0Start(&vlcTimerCb,250,true);
 
     if (err == ERR_NONE) {
@@ -237,7 +226,7 @@ error_t vlcReceive() {
     }
     
     timer0Stop();
-    //adcDisable();
+    adcDisable();
 
     for (int i=currentMessageLength;i<MESSAGE_LENGTH;i++) {
         outputText[i]=0;
