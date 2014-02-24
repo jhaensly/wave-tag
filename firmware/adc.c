@@ -19,9 +19,6 @@ error_t adcInit(void) {
     // Left adjust result and use AVcc for reference
     ADMUX = _BV(ADLAR) | _BV(REFS0);
 
-    //@Ciuffo Enable ADC. Div clock by 2.
-    ADCSRA = _BV(ADEN);
-
     // Cut power to the ADC peripheral while not in use
     PRR |= _BV(PRADC);
 
@@ -57,6 +54,9 @@ error_t adcIntEnable(adc_channel_t channel, adc_cb_t cb) {
     // clock cycles rather than the typical 13.
 	ADCSRA |= _BV(ADEN) | _BV(ADSC) | _BV(ADIE);
 
+    // Disable power to the ADC peripheral
+    PRR    |= _BV(PRADC);
+    
     return ERR_NONE;
 }
 

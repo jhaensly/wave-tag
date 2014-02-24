@@ -104,7 +104,7 @@ uint8_t measureLED() {
     
 	
 	PORTC &= 0xf8u;
-	DDRC   = 0x03u;  //return to normal
+	DDRC   = 0x00u;  //return to normal
 
 	return temp;
 }
