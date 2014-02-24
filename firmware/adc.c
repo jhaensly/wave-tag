@@ -24,7 +24,8 @@ error_t adcInit(void) {
     // sample every 104 usec. Along with the setting of the ADCSRB register
     // below, setting the ADATE bit here will enable a "free run mode" in
     // which samples are taken continuously.
-    ADCSRA = _BV(ADPS1) | _BV(ADPS0) | _BV(ADATE);
+    //@Ciuffo removing this line to switch timing away from ADC
+    //ADCSRA = _BV(ADPS1) | _BV(ADPS0) | _BV(ADATE);
 
     // Setting the ADCSRB register to 0 enables free run mode.
     // ADCSRB = 0; // Default

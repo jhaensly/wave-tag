@@ -114,7 +114,7 @@ static bool isPreamble(uint8_t time) {
 	return false;
 }
 
-static void vlcAdcCb(uint8_t led_measurement) {
+static void vlcTimerCb(uint8_t led_measurement) {
     static uint8_t toggle;
 
     toggle ^= 1;
@@ -211,13 +211,16 @@ error_t vlcReceive() {
 	DDRC = 0x01u;
 	_delay_us(10);
 
-    err = adcEnable(ADC_CHAN_1, &vlcAdcCb);
+    //@Ciuffo switching from ADC to normal timer
+    //err = adcEnable(ADC_CHAN_1, &vlcAdcCb);
+    err = timer0Start(&vlcTimerCb,400,TRUE);
 
     if (err == ERR_NONE) {
-        sleep(SLEEP_MODE_ADC, &vlcActive);
+        sleep(SLEEP_MODE_IDLE, &vlcActive);
     }
-
-    adcDisable();
+    
+    timer0Stop();
+    //adcDisable();
 
     for (int i=currentMessageLength;i<MESSAGE_LENGTH;i++) {
         outputText[i]=0;
