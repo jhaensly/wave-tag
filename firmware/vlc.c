@@ -20,6 +20,7 @@
 #include "adc.h"
 #include "sleep.h"
 #include "button.h"
+#include "timer.h"
 
 // Edge detection sensitivity
 #define LED_MEASUREMENT_SENSITIVITY (3u)
@@ -78,6 +79,42 @@ static bool vlcActive(void) {
     return BUTTON_PRESSED();
 }
 
+/**
+ * Measure light value from LED.
+ */
+uint8_t measureLED() {
+	PORTC = PORTC & 0xfcu; //kill both sides of the LED
+	DDRC = 0x03u;
+    
+	//configure ADC
+	ADMUX  = 0x61u; //left adjust, avcc ref, ADC1
+	ADCSRA = 0x80u; //enable ADC, divide clock by 2
+    
+	//raise the cathode
+	PORTC |= 0x01u;
+	_delay_us(100);
+    
+	//take the LED anode out of the equation.
+	DDRC = 0x01u;
+	_delay_us(10);
+    
+	//START CONVERSION
+	ADCSRA|=0b01000000;
+	while (ADCSRA & 0b01000000) {
+		//ADCSRA |= (0b00010000);
+	}
+    
+	uint8_t temp = ADCH;
+    
+	ADCSRA = 0x00u;  //disable ADC
+	PORTC &= 0xf8u;
+	DDRC   = 0x03u;  //return to normal
+	ADMUX  = 0x00u;
+	ADCSRA = 0x00u;
+	return temp;
+}
+
+
 /*
  * Takes in a time measurement. Returns true if
  * this byte finishes the preamble.
@@ -105,7 +142,7 @@ static bool isPreamble(uint8_t time) {
 	if (time>timeThreshold) {
 		currentMessage|=0x01;
 	}
-	//displayByte(currentMessage);
+	
 	if (((currentMessage&0b11111)==0b10100)&&(positionCounter>5)) {
 		preambleLock = true;
 		positionCounter=0;
@@ -114,26 +151,12 @@ static bool isPreamble(uint8_t time) {
 	return false;
 }
 
-static void vlcTimerCb(uint8_t led_measurement) {
-    static uint8_t toggle;
-
-    toggle ^= 1;
-    if (toggle) {
-        displayByte(led_measurement);
-
-        // Let the LED discharge
-        PORTC  &= 0xf8;
-        DDRC    = 0x03;
-    }
-    else {
-        PORTC |= 0x01;
-        DDRC   = 0x01;
-
-        // Discard this measurment
-        return;
-    }
-    return;
-
+static void vlcTimerCb(void) {
+    
+    uint8_t led_measurement = measureLED();
+    
+    
+    
 	// Maximum and minimum values are primarily a function of the transmitter's distance from
 	// the board. Since that is variable, find good values dynamically. At the start of a
 	// transmission, they should change frequenctly. Later, as things stabilize, we should
@@ -199,21 +222,15 @@ error_t vlcReceive() {
 	timeMax = 0x00;
 	timeThreshold = 0x80;
 	currentMessage = 0x00;
-
-	PORTC = PORTC & 0xfcu; //kill both sides of the LED
-	DDRC = 0x03u;
-
-	//raise the cathode
-	PORTC |= 0x01u;
-	_delay_us(100);
-
-	//take the LED anode out of the equation.
-	DDRC = 0x01u;
-	_delay_us(10);
-
+    
+    //@ciuffo enable ADC
+    PRR &= ~_BV(PRADC);
+    
+    
+	
     //@Ciuffo switching from ADC to normal timer
     //err = adcEnable(ADC_CHAN_1, &vlcAdcCb);
-    err = timer0Start(&vlcTimerCb,400,TRUE);
+    err = timer0Start(&vlcTimerCb,250,true);
 
     if (err == ERR_NONE) {
         sleep(SLEEP_MODE_IDLE, &vlcActive);

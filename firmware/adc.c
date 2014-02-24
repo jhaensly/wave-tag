@@ -19,16 +19,8 @@ error_t adcInit(void) {
     // Left adjust result and use AVcc for reference
     ADMUX = _BV(ADLAR) | _BV(REFS0);
 
-    // Configure the ADC to divide the system clock by 8. With a CPU clock rate
-    // of 1MHz and each conversion taking 13 clock cycles, that works out to a
-    // sample every 104 usec. Along with the setting of the ADCSRB register
-    // below, setting the ADATE bit here will enable a "free run mode" in
-    // which samples are taken continuously.
-    //@Ciuffo removing this line to switch timing away from ADC
-    //ADCSRA = _BV(ADPS1) | _BV(ADPS0) | _BV(ADATE);
-
-    // Setting the ADCSRB register to 0 enables free run mode.
-    // ADCSRB = 0; // Default
+    //@Ciuffo Enable ADC. Div clock by 2.
+    ADCSRA = _BV(ADEN);
 
     // Cut power to the ADC peripheral while not in use
     PRR |= _BV(PRADC);
