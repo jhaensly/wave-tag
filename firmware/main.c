@@ -28,6 +28,7 @@ static volatile enum {
     APP_MODE_WAVE,
     APP_MODE_ACCEL_TEST,
     APP_MODE_COUNT_TEST,
+    APP_MODE_SENSOR_TEST,
     APP_MODE_TIMER_TEST,
 
     APP_MODE_COUNT // This must remain last
@@ -128,6 +129,19 @@ static error_t doCountTest(void) {
     return ERR_NONE;
 }
 
+static error_t doSensorTest(void) {
+    displayEnable();
+    adcEnable(ADC_CHAN_1);
+    while(m_current_mode == m_next_mode) {
+        while (isButtonUp()){}
+        displayByte(0x00);
+        uint8_t temp = measureLED();
+        displayByte(temp);
+        _delay_ms(10);
+    }
+    return ERR_NONE;
+}
+
 static volatile uint8_t m_timer_counter;
 static void timerTestCB(void) {
     m_timer_counter++;
@@ -163,6 +177,7 @@ static const handle_app_mode_t app_mode_handler[] = {
     &doWave,
     &doAccelTest,
     &doCountTest,
+    &doSensorTest,
     &doTimerTest
 };
 
@@ -179,8 +194,10 @@ int main(void) {
     timerInit();
     adcInit();
 
-    m_current_mode  = APP_MODE_SLEEP;
-    m_next_mode     = APP_MODE_WAVE;
+    m_current_mode   = APP_MODE_SENSOR_TEST;
+    m_next_mode   = APP_MODE_SENSOR_TEST;
+    //m_current_mode  = APP_MODE_SLEEP;
+    //m_next_mode     = APP_MODE_WAVE;
 
     memset((uint8_t*)outputText, 1, sizeof(outputText));
 

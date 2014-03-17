@@ -18,4 +18,12 @@
  */
 extern error_t vlcReceive(void);
 
+
+/**
+ * Measure 1 byte value from LED
+ *
+ * @return uint8_t
+ */
+extern uint8_t measureLED(void);
+
 #endif
