@@ -3,6 +3,10 @@
  *
  * @author Jason W Haensly <jason.haensly@gmail.com> 25 Jan 2014
  *
+ * @copyright Copyright (c) 2014 Blinc Labs LLC
+ * @copyright This software is licensed under the terms and conditions of the
+ * MIT License. See LICENSE.md in the root directory for more information.
+ *
  * Driver for the Freescale MMA8653FC 3 axis accelerometer.
  */
 

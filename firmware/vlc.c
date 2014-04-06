@@ -3,6 +3,10 @@
  *
  * @author Michael Ciuffo <ch0000f@gmail.com> 26 Jan 2014
  *
+ * @copyright Copyright (c) 2014 Blinc Labs LLC
+ * @copyright This software is licensed under the terms and conditions of the
+ * MIT License. See LICENSE.md in the root directory for more information.
+ *
  * VLC support for Wavetag DVT1
  */
 
@@ -85,24 +89,24 @@ static bool vlcActive(void) {
 uint8_t measureLED() {
 	PORTC = PORTC & 0xfcu; //kill both sides of the LED
 	DDRC = 0x03u;
-    
+
 	//raise the cathode
 	PORTC |= 0x01u;
 	_delay_us(100);
-    
+
 	//take the LED anode out of the equation.
 	DDRC = 0x01u;
 	_delay_us(10);
-    
+
 	//START CONVERSION
 	ADCSRA|=0b01000000;
 	while (ADCSRA & 0b01000000) {
 		//ADCSRA |= (0b00010000);
 	}
-    
+
 	uint8_t temp = ADCH;
-    
-	
+
+
 	PORTC &= 0xf8u;
 	DDRC   = 0x00u;  //return to normal
 
@@ -137,7 +141,7 @@ static bool isPreamble(uint8_t time) {
 	if (time>timeThreshold) {
 		currentMessage|=0x01;
 	}
-	
+
 	if (((currentMessage&0b11111)==0b10100)&&(positionCounter>5)) {
 		preambleLock = true;
 		positionCounter=0;
@@ -147,11 +151,11 @@ static bool isPreamble(uint8_t time) {
 }
 
 static void vlcTimerCb(void) {
-    
+
     uint8_t led_measurement = measureLED();
-    
-    
-    
+
+
+
 	// Maximum and minimum values are primarily a function of the transmitter's distance from
 	// the board. Since that is variable, find good values dynamically. At the start of a
 	// transmission, they should change frequenctly. Later, as things stabilize, we should
@@ -217,14 +221,14 @@ error_t vlcReceive() {
 	timeMax = 0x00;
 	timeThreshold = 0x80;
 	currentMessage = 0x00;
-    
+
     adcEnable(ADC_CHAN_1);
     err = timer0Start(&vlcTimerCb,250,true);
 
     if (err == ERR_NONE) {
         sleep(SLEEP_MODE_IDLE, &vlcActive);
     }
-    
+
     timer0Stop();
     adcDisable();
 

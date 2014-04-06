@@ -3,6 +3,10 @@
  *
  * @author This file was procedurally generated on 30 Jan 2014
  *
+ * @copyright Copyright (c) 2014 Blinc Labs LLC
+ * @copyright This software is licensed under the terms and conditions of the
+ * MIT License. See LICENSE.md in the root directory for more information.
+ *
  * The decoding scheme for the Huffman encoded data used for VLC. The value at
  * an index represents either the index in the array of its left child or, if
  * the most significant bit is set, the value itself. The index of the right

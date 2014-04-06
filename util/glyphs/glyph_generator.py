@@ -448,11 +448,17 @@ def DeleteFile(filename):
 
 def WriteHeader(f, name, description=None):
     datestr = datetime.date.today().strftime('%d %b %Y')
+    yearstr = datetime.date.today().strftime('%Y')
 
     f.write('/**\n')
     f.write(' * @file %s\n' % name)
     f.write(' *\n')
     f.write(' * @author This file was procedurally generated on %s\n' % datestr)
+    f.write(' *\n')
+    f.write(' * @copyright Copyright (c) %s Blinc Labs LLC\n' % yearstr)
+    f.write(' * @copyright This software is licensed under the terms and conditions of the\n')
+    f.write(' * MIT License. See LICENSE.md in the root directory for more information.\n')
+    f.write(' *\n')
     if description != None:
         f.write(' *\n' + description + '\n')
     f.write(' */\n\n')

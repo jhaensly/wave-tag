@@ -3,7 +3,9 @@
  *
  * @author Jason W Haensly <jason.haensly@gmail.com> 12 Feb 2014
  *
- * @copyright Copyright details go here
+ * @copyright Copyright (c) 2014 Blinc Labs LLC
+ * @copyright This software is licensed under the terms and conditions of the
+ * MIT License. See LICENSE.md in the root directory for more information.
  */
 
 #ifndef ADC_H_
