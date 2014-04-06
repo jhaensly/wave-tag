@@ -458,7 +458,6 @@ def WriteHeader(f, name, description=None):
     f.write(' * @copyright Copyright (c) %s Blinc Labs LLC\n' % yearstr)
     f.write(' * @copyright This software is licensed under the terms and conditions of the\n')
     f.write(' * MIT License. See LICENSE.md in the root directory for more information.\n')
-    f.write(' *\n')
     if description != None:
         f.write(' *\n' + description + '\n')
     f.write(' */\n\n')
@@ -486,7 +485,7 @@ header_description = \
 
 
 if __name__ == '__main__':
-    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'glyph_config.json')
     with open(config_file, 'rb') as f:
         config = json.load(f)
         glyph_name  = config['glyph_name']
@@ -502,14 +501,14 @@ if __name__ == '__main__':
         f.write('#include <stdint.h>\n')
         f.write('#include <avr/pgmspace.h>\n\n')
         f.write('enum {\n')
-        f.write('    /// The number of defined glyphs\n')
+        f.write('    /** The number of defined glyphs */\n')
         f.write('    GLYPH_COUNT = 0x%02x,\n' % len(alphabet))
         f.write('};\n\n')
-        f.write("/// The start index of a glyph's data in %s\n" % data_arr)
+        f.write("/** The start index of a glyph's data in %s */\n" % data_arr)
         f.write('extern const uint8_t %s[] PROGMEM;\n\n' % start_idx_arr) 
-        f.write('/// The number of bytes of data for the given glyph\n')
+        f.write('/** The number of bytes of data for the given glyph */\n')
         f.write('extern const uint8_t %s[] PROGMEM;\n\n' % width_arr)
-        f.write('/// Glyph data\n')
+        f.write('/** Glyph data */\n')
         f.write('extern const uint8_t %s[] PROGMEM;\n\n' % data_arr)
         f.write('#endif // %s' % header_grd)
 

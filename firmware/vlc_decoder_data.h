@@ -1,7 +1,7 @@
 /**
  * @file vlc_decoder_data.h
  *
- * @author This file was procedurally generated on 30 Jan 2014
+ * @author This file was procedurally generated on 06 Apr 2014
  *
  * @copyright Copyright (c) 2014 Blinc Labs LLC
  * @copyright This software is licensed under the terms and conditions of the

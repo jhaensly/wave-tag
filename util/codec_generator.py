@@ -168,17 +168,15 @@ class HuffmanTree:
         return arr
 
 if __name__ == '__main__':
-    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+    config_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'codec_config.json')
     with open(config_file, 'r') as f:
         config = json.load(f)
         tweets_file   = os.path.join(\
                         config['tweets_path'],\
-                        config['tweets_name'],\
-                        config['tweets_ext'])
+                        config['tweets_name'] + config['tweets_ext'])
         char_file     = os.path.join(\
                         config['char_path'],
-                        config['char_name'],
-                        config['char_ext'])
+                        config['char_name'] + config['char_ext'])
         encoder_file  = os.path.join(\
                         config['encoder_path'],\
                         config['encoder_name']) 
@@ -187,8 +185,7 @@ if __name__ == '__main__':
                         config['decoder_path'],\
                         decoder_name)
         twitter_cred  = os.path.join(config['twitter_credentials_path'],\
-                        config['twitter_credentials_name'],\
-                        config['twitter_credentials_ext'])
+                        config['twitter_credentials_name'] + config['twitter_credentials_ext'])
 
         refresh_tweets = config['refresh_tweets']
 
@@ -271,12 +268,12 @@ if __name__ == '__main__':
         f.write('#include <stdint.h>\n')
         f.write('#include <avr/pgmspace.h>\n\n')
         f.write('enum {\n')
-        f.write('    /// The number of elements in the matrix\n')
+        f.write('    /** The number of elements in the matrix */\n')
         f.write('    %s = %d,\n\n' % (numel_name, len(arr)))
-        f.write('    /// The value used to denote invalid symbols\n')
+        f.write('    /** The value used to denote invalid symbols */\n')
         f.write('    %s  = 0x%02x,\n' % (invalid_name, garbage_value))
         f.write('};\n\n')
-        f.write('/// The decoder matrix\n')
+        f.write('/** The decoder matrix */\n')
         f.write('extern const uint8_t %s[%s] PROGMEM;\n\n\n' % (arr_name, numel_name))
         f.write('#endif // %s' % header_grd)
 

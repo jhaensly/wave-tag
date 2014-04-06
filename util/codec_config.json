@@ -1,21 +1,21 @@
 {
     "twitter_credentials_path": "./", 
     "twitter_credentials_name": "twitter_credentials", 
-    "twitter_credentials_ext": ".p", 
+    "twitter_credentials_ext" : ".p", 
     "refresh_tweets": false, 
 
     "tweets_path": "./", 
     "tweets_name": "tweets", 
-    "tweets_ext": "txt", 
+    "tweets_ext" : "txt", 
 
     "encoder_path": "./", 
     "encoder_name": "vlc_encoder_data", 
 
-    "decoder_path": "../../firmware/", 
+    "decoder_path": "../firmware/", 
     "decoder_name": "vlc_decoder_data", 
     "get_tweet_count": 1000000, 
 
     "char_path": "./", 
-    "char_name": "char_probability"
-    "char_ext": ".p", 
+    "char_name": "char_probability",
+    "char_ext" : ".p"
 }

@@ -42,7 +42,7 @@ FUSES       := -U hfuse:w:0xDF:m -U lfuse:w:0x6E:m
 -include config.mk
 PROGRAMMER  ?= -c avrispmkii -P usb
 
-SRC_PATH    := ./
+SRC_PATH    := .
 APP_NAME    := wave-tag
 OBJ_DIR     := $(SRC_PATH)/obj
 ELF_FILE    := $(OBJ_DIR)/$(APP_NAME).elf
@@ -53,16 +53,16 @@ SYM_FILE    := $(OBJ_DIR)/$(APP_NAME).sym
 OBJECTS     := $(addprefix $(OBJ_DIR)/, $(C_SRC:.c=.o))
 Q           ?= @
 
-# Toolchain aliases
-TC_PRE  = avr-
-CC      = $(TC_PRE)gcc
-CXX     = $(TC_PRE)g++
-CPP     = $(TC_PRE)cpp
-AR      = $(TC_PRE)ar
-NM      = $(TC_PRE)nm
-OBJCOPY = $(TC_PRE)objcopy
-OBJDUMP = $(TC_PRE)objdump
-SIZE    = $(TC_PRE)size
+# Toolchain aliases.
+TOOLCHAIN ?= avr-
+CC      := $(TOOLCHAIN)gcc
+CXX     := $(TOOLCHAIN)g++
+CPP     := $(TOOLCHAIN)cpp
+AR      := $(TOOLCHAIN)ar
+NM      := $(TOOLCHAIN)nm
+OBJCOPY := $(TOOLCHAIN)objcopy
+OBJDUMP := $(TOOLCHAIN)objdump
+SIZE    := $(TOOLCHAIN)size
 
 include version.inc
 
