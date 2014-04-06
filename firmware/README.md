@@ -101,7 +101,8 @@ modificulations/additions:
 
   e.g. `g_global_var`
 
-- Specific `#includes` in the header file only when required.
+- If a file can be `#included' in the header file or source file, include it in
+  the source file.
 
 - System `#includes` should come before project `#includes` unless there's
   a specific reason to do otherwise.
