@@ -20,6 +20,6 @@
  *
  * @return error_t
  */
-extern error_t vlcReceive(void);
+extern enum error_t vlcReceive(void);
 
 #endif

@@ -80,32 +80,72 @@ modificulations/additions:
 - All conditionals should use curly braces, even those with a single clause,
   unless there is a specific reason to do otherwise.
 
-- All public API's should include Doxygen-style comments.
+- All public function declarations should include Doxygen-style comments.
 
 - All functions and structs should be written using camelCase. With functions,
   the first word should be the name of the module. 
   
   e.g. `fooBar(...)`
 
+- All enumerations should be lowercase with words separated by an underscore and
+  postfixed with "\_t".
+
+  e.g. `my_enum_t`
+
 - All variables should be lowercase with words separated by an underscore. 
 
   e.g. `my_var`
 
-- Local variables (those decleared static within a source file) should be
+- Private/member variables (those decleared static within a source file) should be
   prefixed with "m\_". 
   
-  e.g. `m_local_var`
+  e.g. `m_member_var`
 
-- Global variables (those declared extern in a header file) should be prefixed
+- Public/global variables (those declared extern in a header file) should be prefixed
   with "g\_". 
 
   e.g. `g_global_var`
 
-- If a file can be `#included' in the header file or source file, include it in
-  the source file.
+- If a file can be `#included` in the header file or source file, it should be
+  included in the source file.
 
-- System `#includes` should come before project `#includes` unless there's
-  a specific reason to do otherwise.
+- Header files should be organized as follows:
+  
+  - Header block comment with module description
+
+  - Header guard
+
+  - System includes
+
+  - Project includes
+
+  - Forward declarations
+
+  - Data type definitions
+
+  - Public variable declarations
+
+  - Public function declarations
+
+- Source files should be organized as follows:
+  
+  - Header block comment
+
+  - System includes
+
+  - Project includes
+
+  - Public variables
+
+  - Private variables
+
+  - Private function declarations
+
+  - Private function definitions (in the same order as declared)
+
+  - Public function definitions (in the same order as declared)
+
+  - ISR definitions
 
 Known issues
 ------------

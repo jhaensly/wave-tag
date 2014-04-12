@@ -51,8 +51,7 @@ static uint8_t cursorLocation;
 static uint8_t messageDepth;
 
 
-/* Takes in time measurement. Returns
- * letter index if valid, 0xff if not */
+/* Takes in time measurement. Returns letter index if valid, 0xff if not */
 static uint8_t isLetter(uint8_t time) {
     currentMessage<<=1;
 	if (time>timeThreshold) {
@@ -79,14 +78,16 @@ static uint8_t isLetter(uint8_t time) {
     return 0xff;
 }
 
-static bool vlcActive(void) {
+static bool vlcActive(void)
+{
     return BUTTON_PRESSED();
 }
 
-/**
+/*
  * Measure light value from LED.
  */
-uint8_t measureLED() {
+uint8_t measureLED()
+{
 	PORTC = PORTC & 0xfcu; //kill both sides of the LED
 	DDRC = 0x03u;
 
@@ -115,10 +116,10 @@ uint8_t measureLED() {
 
 
 /*
- * Takes in a time measurement. Returns true if
- * this byte finishes the preamble.
+ * Takes in a time measurement. Returns true if this byte finishes the preamble.
  */
-static bool isPreamble(uint8_t time) {
+static bool isPreamble(uint8_t time)
+{
 	if (preambleLock) {
 		return true;
     }
@@ -150,8 +151,8 @@ static bool isPreamble(uint8_t time) {
 	return false;
 }
 
-static void vlcTimerCb(void) {
-
+static void vlcTimerCb(void)
+{
     uint8_t led_measurement = measureLED();
 
 
@@ -205,8 +206,9 @@ static void vlcTimerCb(void) {
 	}
 }
 
-error_t vlcReceive() {
-    error_t err = ERR_NONE;
+enum error_t vlcReceive()
+{
+    enum error_t err = ERR_NONE;
 
     displayEnable();
     currentMessageLength=0;

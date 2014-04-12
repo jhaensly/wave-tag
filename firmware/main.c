@@ -1,7 +1,13 @@
-/* Name: main.c
- * Author: <insert your name here>
- * Copyright: <insert your copyright message here>
- * License: <insert your license reference here>
+/**
+ * @file main.c
+ *
+ * @author Jason W Haensly <jason.haensly@gmail.com> 25 Jan 2014
+ *
+ * @copyright Copyright (c) 2014 Blinc Labs LLC
+ * @copyright This software is licensed under the terms and conditions of the
+ * MIT License. See LICENSE.md in the root directory for more information.
+ *
+ * @todo module description
  */
 
 #include <avr/io.h>
@@ -21,6 +27,15 @@
 #include "timer.h"
 #include "adc.h"
 
+static void appError(enum error_t err_code);
+static enum error_t appSleep(void);
+static enum error_t appWaiting(void);
+static enum error_t appVLC(void);
+static enum error_t appWave(void);
+static enum error_t appAccelTest(void);
+static enum error_t appCountTest(void);
+static enum error_t appTimerTest(void);
+
 static volatile enum {
     APP_MODE_SLEEP,
     APP_MODE_WAITING,
@@ -30,11 +45,27 @@ static volatile enum {
     APP_MODE_COUNT_TEST,
     APP_MODE_TIMER_TEST,
 
-    APP_MODE_COUNT // This must remain last
+    APP_MODE_COUNT          /* This must remain last */
 } m_current_mode,
   m_next_mode;
 
-void error_state(error_t err_code) {
+/*
+ * This array of app modes must be in the same order as the array of enums
+ * defined above. Main uses the enum value as an index into this array.
+ */
+typedef enum error_t (* handle_app_mode_t)(void);
+static const handle_app_mode_t m_app_mode_handler[] = {
+    appSleep,
+    appWaiting,
+    appVLC,
+    appWave,
+    appAccelTest,
+    appCountTest,
+    appTimerTest
+};
+
+void appError(enum error_t err_code)
+{
     static const uint8_t fw_ver = (APP_VERSION_MAJOR << 4) | APP_VERSION_MINOR;
 
     displayEnable();
@@ -47,15 +78,17 @@ void error_state(error_t err_code) {
     }
     displayDisable();
 
-    // TODO: Reset device
+    /** @todo Reset device */
 }
 
 
-static bool isButtonUp(void) {
+static bool isButtonUp(void)
+{
     return BUTTON_RELEASED();
 }
 
-static error_t doSleep(void) {
+static enum error_t appSleep(void)
+{
     sleep(SLEEP_PWR_DOWN, &isButtonUp);
 
     //m_next_mode = BUTTON_RELEASED() ? APP_MODE_WAVE : APP_MODE_VLC;
@@ -73,48 +106,55 @@ static error_t doSleep(void) {
     return ERR_NONE;
 }
 
-static error_t doWaiting(void) {
+static enum error_t appWaiting(void)
+{
     return ERR_APP_INVALID_MODE;
 }
 
-static error_t doVLC(void) {
-    error_t err = vlcReceive();
+static enum error_t appVLC(void)
+{
+    enum error_t err = vlcReceive();
 
 	m_next_mode = APP_MODE_WAVE;
 	return err;
 }
 
-static bool isWaveActive(void) {
+static bool appIsWaveActive(void)
+{
     return is_wave_active && BUTTON_RELEASED();
 }
 
-static error_t doWave(void) {
+static enum error_t appWave(void)
+{
 	//while button is pressed and held, stay in VLC mode
 	initDisplay();
 	refreshFrameBuffer();
 
-    sleep(SLEEP_IDLE, &isWaveActive);
+    sleep(SLEEP_IDLE, appIsWaveActive);
 
 	killDisplay();
 	m_next_mode = BUTTON_PRESSED() ? APP_MODE_VLC : APP_MODE_SLEEP;
 	return ERR_NONE;
 }
 
-static error_t doAccelTest(void) {
+static enum error_t appAccelTest(void)
+{
+    enum error_t err;
     displayEnable();
-
-    while (m_current_mode == m_next_mode) {
-        accel_data_t val;
-        accelReadValue(ACCEL_Y, &val);
+    do {
+        int8_t val;
+        err = accelReadValue(ACCEL_Y, &val);
         displayByte(val);
         _delay_ms(10);
-    }
+    } while (m_current_mode == m_next_mode &&
+             err == ERR_NONE);
 
     displayDisable();
-    return ERR_NONE;
+    return err;
 }
 
-static error_t doCountTest(void) {
+static enum error_t appCountTest(void)
+{
     uint8_t i = 0;
     displayEnable();
 
@@ -129,19 +169,21 @@ static error_t doCountTest(void) {
 }
 
 static volatile uint8_t m_timer_counter;
-static void timerTestCB(void) {
+static void appTimerTestCB(void)
+{
     m_timer_counter++;
 }
 
-static error_t doTimerTest(void) {
+static enum error_t appTimerTest(void)
+{
     m_timer_counter = 0xf0;
-    error_t err;
+    enum error_t err;
 
     if ((err = displayEnable()) != ERR_NONE) {
         return err;
     }
 
-    if ((err = timer0Start(&timerTestCB, 200, true)) != ERR_NONE) {
+    if ((err = timer0Start(appTimerTestCB, 200, true)) != ERR_NONE) {
         return err;
     }
 
@@ -153,22 +195,9 @@ static error_t doTimerTest(void) {
     return err;
 }
 
-// This array of app modes must be in the same order as the array of enums
-// defined above. Main uses the enum value as an index into this array.
-typedef error_t (*handle_app_mode_t)(void);
-static const handle_app_mode_t app_mode_handler[] = {
-    &doSleep,
-    &doWaiting,
-    &doVLC,
-    &doWave,
-    &doAccelTest,
-    &doCountTest,
-    &doTimerTest
-};
-
-
-int main(void) {
-    // We're not using SPI or analog comparitor, so disable them to save power.
+int main(void)
+{
+    /* We're not using SPI or analog comparitor, so disable them to save power. */
     PRR  |= _BV(PRSPI);
     ACSR |= _BV(ACD);
 
@@ -187,17 +216,16 @@ int main(void) {
     sei();
 
     while(1) {
-        error_t error;
+        enum error_t error;
 
         if (m_current_mode < APP_MODE_COUNT) {
-            error = app_mode_handler[m_current_mode]();
-        }
-        else {
+            error = m_app_mode_handler[m_current_mode]();
+        } else {
             error = ERR_APP_INVALID_MODE;
         }
 
         if (error != ERR_NONE) {
-            error_state(error);
+            appError(error);
         }
 
         m_current_mode = m_next_mode;

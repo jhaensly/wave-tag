@@ -18,8 +18,10 @@
 
 /**
  * Initialize the display.
+ *
+ * @return
  */
-extern error_t displayEnable(void);
+extern enum error_t displayEnable(void);
 
 
 /**
@@ -27,7 +29,7 @@ extern error_t displayEnable(void);
  *
  * @todo Configure as inputs
  */
-extern error_t displayDisable(void);
+extern enum error_t displayDisable(void);
 
 
 /**

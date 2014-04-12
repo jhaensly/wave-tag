@@ -15,15 +15,23 @@
 #ifndef MODULE_ID_H_
 #define MODULE_ID_H_
 
-typedef enum {
+
+/**
+ *
+ */
+enum module_id_t {
     MODULE_ID_INVALID       = 0x00, ///< Reserved
     MODULE_ID_APP           = 0x01, ///< WaveTag application
     MODULE_ID_TIMER         = 0x02, ///< Timer
     MODULE_ID_ACCEL         = 0x03, ///< Accelerometer
     MODULE_ID_ADC           = 0x04, ///< ADC
-} module_id_t;
+};
 
-typedef enum {
+
+/**
+ *
+ */
+enum error_t {
     /// No error. In fact, success!
     ERR_NONE                = 0x00,
 
@@ -46,7 +54,7 @@ typedef enum {
     ERR_ADC_BUSY            = 0x01 | MODULE_ID_ADC,
     /// ADC not enabled
     ERR_ADC_STOPPED         = 0x02 | MODULE_ID_ADC,
-} error_t;
+};
 
 
 #endif // MODULE_ID_H_

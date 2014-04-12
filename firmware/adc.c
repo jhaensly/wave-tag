@@ -12,57 +12,70 @@
 #include <avr/interrupt.h>
 #include "adc.h"
 
-static adc_cb_t m_cb;
+/* Private variables */
+static void (* m_cb)(uint8_t);
 
-error_t adcInit(void) {
-    // Enable power to the ADC peripheral before making changes
+
+/* Function definitions */
+enum error_t adcInit(void)
+{
+    /* Enable power to the ADC peripheral before making changes */
     PRR &= ~_BV(PRADC); // Default
 
-    // Left adjust result and use AVcc for reference
+    /* Left adjust result and use AVcc for reference */
     ADMUX = _BV(ADLAR) | _BV(REFS0);
 
-    // Cut power to the ADC peripheral while not in use
+    /* Cut power to the ADC peripheral while not in use */
     PRR |= _BV(PRADC);
 
     return ERR_NONE;
 }
 
-error_t adcEnable(adc_channel_t channel)
+enum error_t adcEnable(enum adc_channel_t channel)
 {
-    //configure ADC
+    /* Enable the peripheral clock */
     PRR &= ~_BV(PRADC);
-	ADMUX  = 0x60u | channel; //left adjust, avcc ref
-	ADCSRA = 0x80u; //enable ADC, divide clock by 2
+
+    /* Left adjust; Use VCC as reference */
+	ADMUX  = _BV(REFS0) | _BV(ADLAR) | channel;
+
+    /* Use clock divider of 2; enable ADC */
+	ADCSRA = _BV(ADEN);
+
     return ERR_NONE;
 }
 
-error_t adcIntEnable(adc_channel_t channel, adc_cb_t cb) {
-    if (!cb) {
+enum error_t adcIntEnable(enum adc_channel_t channel,
+                          void (* adc_cb)(uint8_t))
+{
+    if (!adc_cb) {
         return ERR_ADC_INVALID_ARG;
-    }
-    if (!(PRR & _BV(PRADC))) {
+    } else if (!(PRR & _BV(PRADC))) {
         return ERR_ADC_BUSY;
     }
 
-    m_cb = cb;
+    m_cb = adc_cb;
 
-    // Enable power to the ADC peripheral
+    /* Enable the ADC peripheral clock */
     PRR &= ~_BV(PRADC);
 
-	// Set the channel
+	/* Select the channel */
     ADMUX |= channel;
 
-    // Enable the ADC and start conversion. The first measurement will take 25
-    // clock cycles rather than the typical 13.
+    /*
+     * Enable the ADC and start conversion. The first measurement will take 25
+     * clock cycles rather than the typical 13.
+     */
 	ADCSRA |= _BV(ADEN) | _BV(ADSC) | _BV(ADIE);
 
-    // Disable power to the ADC peripheral
+    /* Disable the peripheral clock */
     PRR    |= _BV(PRADC);
 
     return ERR_NONE;
 }
 
-error_t adcDisable() {
+enum error_t adcDisable()
+{
     if (PRR & _BV(PRADC)) {
         return ERR_ADC_STOPPED;
     }
@@ -74,7 +87,8 @@ error_t adcDisable() {
     return ERR_NONE;
 }
 
-ISR (ADC_vect) {
+ISR (ADC_vect)
+{
     static uint8_t val;
 
     val = ADCH;

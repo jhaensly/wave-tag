@@ -60,22 +60,13 @@
 #include <stdbool.h>
 
 /**
- * A function that defines when the sleep condition should be exited. Interrupts
- * will be disabled while this function executes.
- *
- * @return true while we should remain asleep, false when we should return.
- */
-typedef bool (*sleep_while_condition_t)(void);
-
-
-/**
  * Alias for the #defines in avr/sleep.h to permit compile time value checking.
  */
-typedef enum {
+enum sleep_mode_t {
     SLEEP_IDLE      = SLEEP_MODE_IDLE,      ///< Idle mode
     SLEEP_ADC       = SLEEP_MODE_ADC,       ///< ADC noise reduction mode
     SLEEP_PWR_DOWN  = SLEEP_MODE_PWR_DOWN,  ///< Power down mode
-} sleep_mode_t;
+};
 
 
 /**
@@ -83,10 +74,11 @@ typedef enum {
  *
  * @param[in] mode The low power sleep state to enter.
  *
- * @param[in] f_cond A pointer to a function that will return false when the sleep
- * condition should be exited.
+ * @param[in] sleep_while A pointer to a function that will return false when
+ * the sleep condition should be exited.
  */
-extern void sleep(sleep_mode_t mode, sleep_while_condition_t f_cond);
+extern void sleep(enum sleep_mode_t mode,
+                  bool (* sleep_while)(void));
 
 
 #endif // SLEEP_H_

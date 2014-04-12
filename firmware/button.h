@@ -17,37 +17,37 @@
 /**
  * Button events.
  */
-typedef enum {
+enum button_event_t {
     BUTTON_SINGLE_PRESS, ///< A single press was detected
-} button_event_t;
+};
 
 
 /**
  * Button states.
  */
-typedef enum {
+enum button_state_t {
     BUTTON_PRESSED,     ///< Button is pressed
     BUTTON_RELEASED,    ///< Button is released
     BUTTON_DISABLED,    ///< Button is disabled
-} button_state_t;
+};
 
 
 /**
  * Enable the button module.
  */
-extern error_t buttonEnable(void);
+extern enum error_t buttonEnable(void);
 
 
 /**
  * Disable the button module.
  */
-extern error_t buttonDisable(void);
+extern enum error_t buttonDisable(void);
 
 
 /**
  * @return The current state of the button.
  */
-extern button_state_t buttonState(void);
+extern enum button_state_t buttonState(void);
 
 
 /**
@@ -61,13 +61,6 @@ extern button_state_t buttonState(void);
  */
 #define BUTTON_PRESSED() (buttonState() == BUTTON_PRESSED)
 
-
-/**
- * A button callback type definition.
- */
-typedef void (*button_cb_t)(button_event_t);
-
-
 /**
  * A callback to be executed on a button event.
  *
@@ -78,7 +71,7 @@ typedef void (*button_cb_t)(button_event_t);
  *
  * @todo Improve button event detection.
  */
-extern void buttonSetCallback(button_cb_t cb);
+extern void buttonSetCallback(void (* button_cb)(enum button_event_t event));
 
 
 #endif // BUTTON_H_

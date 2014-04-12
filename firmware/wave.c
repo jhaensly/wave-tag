@@ -189,7 +189,7 @@ static void waveBlackout(void) {
 void waveIntOneHandler() {
 	uint32_t nextWaveTime;
 
-    accel_data_t val;
+    int8_t val;
     accelReadValue(ACCEL_Y, &val);
     if (val>0)
     {
